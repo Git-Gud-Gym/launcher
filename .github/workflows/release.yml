@@ -36,7 +36,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create '${{ github.ref_name }}' (Get-ChildItem dist/*.zip).FullName `
+          gh release create '${{ github.ref_name }}' (Get-ChildItem dist/*).FullName `
             --title 'Git Gud Gym ${{ github.ref_name }}' --notes-file notes.md --latest
 
       - name: Tell the registry

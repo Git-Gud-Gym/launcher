@@ -1,5 +1,10 @@
 #define GGG_FILE_DESCRIPTION "Git Gud Gym"
 #define GGG_ORIGINAL_FILENAME "GitGudGym.exe"
 #include "version_info.rc"
+#include "resources.h"
 
 1 ICON "app.ico"
+
+// Embedded so GitGudGym.exe runs on its own (no assets folder).
+IDR_LOGO RCDATA "logo_mark.png"
+IDR_NOTIFY WAVE "mixkit-gaming-lock-2848.wav"

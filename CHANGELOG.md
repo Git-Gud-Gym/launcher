@@ -3,6 +3,14 @@
 Releases of the Git Gud Gym launcher, tagged `vX.Y.Z`. Each game module has its own changelog in its
 `module-<game>` repository.
 
+## v0.3.2 - 2026-11-07
+
+- **One-file download:** releases now ship `GitGudGym.exe` directly. The logo and notification sound
+  are built into the exe, so there's no zip to extract and no `assets` folder to keep next to it.
+  `SHA256SUMS.txt` lists the exe's checksum.
+- **Stable download link:** <https://github.com/Git-Gud-Gym/launcher/releases/latest/download/GitGudGym.exe>
+  always points at the newest version.
+
 ## v0.3.1 - 2026-11-07
 
 - **Game page scrolls instead of clipping:** at high Windows display scaling (e.g. 150%) the bottom cards were

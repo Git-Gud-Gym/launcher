@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 # Git Gud Gym launcher. Released as v<version> (see CHANGELOG.md).
-project(GitGudGym VERSION 0.3.1 LANGUAGES CXX RC)
+project(GitGudGym VERSION 0.3.2 LANGUAGES CXX RC)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -48,10 +48,11 @@ add_executable(app WIN32
     src/app/app.rc
 )
 set_target_properties(app PROPERTIES OUTPUT_NAME GitGudGym)
-target_include_directories(app PRIVATE ${CMAKE_BINARY_DIR}/generated/app third_party/nlohmann)
+# assets/ is on the include path so app.rc can embed the logo and the notification sound.
+target_include_directories(app PRIVATE ${CMAKE_BINARY_DIR}/generated/app third_party/nlohmann assets)
 target_compile_options(app PRIVATE $<$<COMPILE_LANGUAGE:CXX>:/W4>)
 target_link_libraries(app PRIVATE ggg::contract imgui d3d11 dxgi d3dcompiler dwmapi windowscodecs gdiplus winmm
-                                  version winhttp bcrypt)
+                                  version winhttp bcrypt shlwapi)
 
 # Run elevated: attaching to games and launching them as admin both need it.
 # -DGGG_REQUIRE_ADMIN=OFF builds a non-elevated app for UI work.
@@ -60,8 +61,3 @@ if(GGG_REQUIRE_ADMIN)
     target_link_options(app PRIVATE "/MANIFESTUAC:level='requireAdministrator' uiAccess='false'")
 endif()
 
-add_custom_command(TARGET app POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${OUT_DIR}/assets
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_SOURCE_DIR}/assets/logo_mark.png ${OUT_DIR}/assets/logo.png
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_SOURCE_DIR}/assets/mixkit-gaming-lock-2848.wav
-            ${OUT_DIR}/assets/notify.wav)

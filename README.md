@@ -19,6 +19,10 @@ Install Git Gud Gym once, then add the games you play from its library.
 [![License: MIT](https://img.shields.io/badge/license-MIT-0c0d12?style=flat-square)](LICENSE)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-0c0d12?style=flat-square)](https://github.com/Git-Gud-Gym/.github/blob/main/CONTRIBUTING.md)
 
+### [⬇ Download GitGudGym.exe](https://github.com/Git-Gud-Gym/launcher/releases/latest/download/GitGudGym.exe)
+
+<sub>Windows 10 / 11 · one file, no installer · [all releases](https://github.com/Git-Gud-Gym/launcher/releases)</sub>
+
 <img src="docs/images/app.png" width="900" alt="Git Gud Gym game page during a fight">
 
 <sub>A game page mid-fight (sample data).</sub>
@@ -64,10 +68,12 @@ or [build the module yourself](https://github.com/Git-Gud-Gym/sdk/blob/main/docs
 
 ## Quick start
 
-1. **Download** `GitGudGym-v*.zip` from the
-   [latest release](https://github.com/Git-Gud-Gym/launcher/releases/latest), extract it anywhere,
-   and run `GitGudGym.exe`. Accept the administrator prompt: the app needs it to launch the game and
-   attach to it.
+1. **Download [GitGudGym.exe](https://github.com/Git-Gud-Gym/launcher/releases/latest/download/GitGudGym.exe)**,
+   put it anywhere, and run it. It's a single file with no installer. Accept the administrator prompt:
+   the app needs it to launch the game and attach to it.
+   > Windows SmartScreen may say it "protected your PC", because the app isn't code-signed yet. Click
+   > **More info → Run anyway**. Each release lists the file's SHA-256 in `SHA256SUMS.txt`, so you can
+   > check the download.
 2. **Install a game** from the **Library**.
 3. **Click Launch game** on the game's page. The app finds your install and starts the game offline,
    without anti-cheat. Once the game has loaded, the mod attaches and the status turns **Active**.

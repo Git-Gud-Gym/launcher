@@ -4,6 +4,8 @@
 #include <chrono>
 #include <string>
 
+struct IStream;
+
 #include "shared_state.h"
 
 namespace Gdiplus {
@@ -17,7 +19,7 @@ enum class ToastKind { Death, Defeat, Warning, Info };
 // Works over borderless/windowed mode; exclusive fullscreen may hide them.
 class Overlay {
 public:
-    bool Init(HINSTANCE instance, const std::wstring& logoPath);
+    bool Init(HINSTANCE instance);
     void Shutdown();
 
     void ShowToast(ToastKind kind, std::wstring title, std::wstring subtitle);
@@ -45,6 +47,7 @@ private:
 
     ULONG_PTR gdiplusToken_ = 0;
     Gdiplus::Image* logo_ = nullptr;
+    IStream* logoStream_ = nullptr;  // GDI+ reads the image lazily, so the stream must outlive it
     Layer toastLayer_, hudLayer_;
     Toast toast_;
     std::chrono::steady_clock::time_point lastHudDraw_{};

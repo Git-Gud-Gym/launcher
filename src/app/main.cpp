@@ -8,9 +8,11 @@
 
 #include <algorithm>
 #include <filesystem>
+#include <span>
 #include <vector>
 
 #include "app.h"
+#include "resources.h"
 #include "imgui.h"
 #include "imgui_impl_dx11.h"
 #include "imgui_impl_win32.h"
@@ -70,9 +72,11 @@ void CleanupDevice() {
     if (g_device) g_device->Release();
 }
 
-// Decodes an image with WIC and uploads it as a texture, downscaled to size x size.
-ImTextureID LoadTexture(const std::wstring& path, UINT size) {
+// Decodes an image (PNG, JPEG, ...) from memory with WIC and uploads it as a texture, downscaled to size x size.
+ImTextureID LoadTexture(std::span<const BYTE> image, UINT size) {
+    if (image.empty()) return 0;
     IWICImagingFactory* factory = nullptr;
+    IWICStream* stream = nullptr;
     IWICBitmapDecoder* decoder = nullptr;
     IWICBitmapFrameDecode* frame = nullptr;
     IWICBitmapScaler* scaler = nullptr;
@@ -81,8 +85,9 @@ ImTextureID LoadTexture(const std::wstring& path, UINT size) {
     std::vector<BYTE> pixels(static_cast<size_t>(size) * size * 4);
 
     bool ok = SUCCEEDED(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&factory))) &&
-              SUCCEEDED(factory->CreateDecoderFromFilename(path.c_str(), nullptr, GENERIC_READ,
-                                                           WICDecodeMetadataCacheOnDemand, &decoder)) &&
+              SUCCEEDED(factory->CreateStream(&stream)) &&
+              SUCCEEDED(stream->InitializeFromMemory(const_cast<BYTE*>(image.data()), static_cast<DWORD>(image.size()))) &&
+              SUCCEEDED(factory->CreateDecoderFromStream(stream, nullptr, WICDecodeMetadataCacheOnDemand, &decoder)) &&
               SUCCEEDED(decoder->GetFrame(0, &frame)) && SUCCEEDED(factory->CreateBitmapScaler(&scaler)) &&
               SUCCEEDED(scaler->Initialize(frame, size, size, WICBitmapInterpolationModeHighQualityCubic)) &&
               SUCCEEDED(factory->CreateFormatConverter(&converter)) &&
@@ -104,7 +109,7 @@ ImTextureID LoadTexture(const std::wstring& path, UINT size) {
             tex->Release();
         }
     }
-    for (IUnknown* u : std::initializer_list<IUnknown*>{converter, scaler, frame, decoder, factory}) {
+    for (IUnknown* u : std::initializer_list<IUnknown*>{converter, scaler, frame, decoder, stream, factory}) {
         if (u) u->Release();
     }
     return reinterpret_cast<ImTextureID>(srv);
@@ -237,7 +242,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR cmdLine, int) {
     }
     LoadFonts(app, g_scale);
     ApplyTheme(g_scale);
-    app.logo = LoadTexture((app.dir / L"assets" / L"logo.png").wstring(), 128);
+    app.logo = LoadTexture(EmbeddedResource(IDR_LOGO, RT_RCDATA), 128);
 
     bool running = true;
     while (running) {

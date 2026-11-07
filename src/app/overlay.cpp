@@ -2,6 +2,9 @@
 
 #include <objidl.h>
 #include <gdiplus.h>
+#include <shlwapi.h>
+
+#include "resources.h"
 
 #include <algorithm>
 #include <cstring>
@@ -73,7 +76,7 @@ void SetupGraphics(Graphics& g) {
 
 }  // namespace
 
-bool Overlay::Init(HINSTANCE instance, const std::wstring& logoPath) {
+bool Overlay::Init(HINSTANCE instance) {
     GdiplusStartupInput input;
     if (GdiplusStartup(&gdiplusToken_, &input, nullptr) != Ok) return false;
 
@@ -85,7 +88,9 @@ bool Overlay::Init(HINSTANCE instance, const std::wstring& logoPath) {
     toastLayer_.hwnd = CreateLayer(instance);
     hudLayer_.hwnd = CreateLayer(instance);
 
-    logo_ = Image::FromFile(logoPath.c_str());
+    const auto png = EmbeddedResource(IDR_LOGO, RT_RCDATA);
+    logoStream_ = png.empty() ? nullptr : SHCreateMemStream(png.data(), static_cast<UINT>(png.size()));
+    logo_ = logoStream_ ? Image::FromStream(logoStream_) : nullptr;
     if (logo_ && logo_->GetLastStatus() != Ok) {
         delete logo_;
         logo_ = nullptr;
@@ -96,6 +101,8 @@ bool Overlay::Init(HINSTANCE instance, const std::wstring& logoPath) {
 void Overlay::Shutdown() {
     delete logo_;
     logo_ = nullptr;
+    if (logoStream_) logoStream_->Release();
+    logoStream_ = nullptr;
     if (toastLayer_.hwnd) DestroyWindow(toastLayer_.hwnd);
     if (hudLayer_.hwnd) DestroyWindow(hudLayer_.hwnd);
     if (gdiplusToken_) GdiplusShutdown(gdiplusToken_);

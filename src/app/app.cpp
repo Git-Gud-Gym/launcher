@@ -13,6 +13,7 @@
 #include "http.h"
 #include "locator.h"
 #include "paths.h"
+#include "resources.h"
 #include "version.h"
 
 namespace fs = std::filesystem;
@@ -67,6 +68,10 @@ std::string ReadFile(const fs::path& file) {
     return text.str();
 }
 
+void PlayNotifySound() {
+    PlaySoundW(MAKEINTRESOURCEW(IDR_NOTIFY), GetModuleHandleW(nullptr), SND_RESOURCE | SND_ASYNC | SND_NODEFAULT);
+}
+
 }  // namespace
 
 // ---------------------------------------------------------------------------------------------
@@ -108,7 +113,7 @@ bool App::Init(HINSTANCE instance, HWND hwnd) {
     RefreshCatalog();
 
     ReadEvents(false);  // show recent history without replaying toasts and sounds
-    overlay_.Init(instance, (dir / L"assets" / L"logo.png").wstring());
+    overlay_.Init(instance);
     return true;
 }
 
@@ -593,23 +598,22 @@ void App::OnEvent(const ggg::Event& e, bool live) {
     while (feed.size() > 200) feed.pop_back();
     if (!live) return;
 
-    const std::wstring sound = (dir / L"assets" / L"notify.wav").wstring();
     const std::wstring lasted = e.attemptSec > 0 ? L"  ·  attempt " + FormatTime(e.attemptSec) : L"";
     switch (e.type) {
         case ggg::EventType::PlayerDeath:
             overlay_.ShowToast(ToastKind::Death, L"YOU DIED",
                                L"Death #" + std::to_wstring(e.count) + lasted + L"  ·  HP restored");
-            if (prefs.soundDeath) PlaySoundW(sound.c_str(), nullptr, SND_FILENAME | SND_ASYNC | SND_NODEFAULT);
+            if (prefs.soundDeath) PlayNotifySound();
             break;
         case ggg::EventType::PlayerFell:
             overlay_.ShowToast(ToastKind::Death, L"YOU FELL",
                                L"Death #" + std::to_wstring(e.count) + lasted + L"  ·  back on solid ground");
-            if (prefs.soundDeath) PlaySoundW(sound.c_str(), nullptr, SND_FILENAME | SND_ASYNC | SND_NODEFAULT);
+            if (prefs.soundDeath) PlayNotifySound();
             break;
         case ggg::EventType::BossDefeated:
             overlay_.ShowToast(ToastKind::Defeat, L"BOSS DEFEATED",
                                L"Defeat #" + std::to_wstring(e.count) + lasted + L"  ·  boss HP restored");
-            if (prefs.soundDefeat) PlaySoundW(sound.c_str(), nullptr, SND_FILENAME | SND_ASYNC | SND_NODEFAULT);
+            if (prefs.soundDefeat) PlayNotifySound();
             break;
         case ggg::EventType::Warning:
             overlay_.ShowToast(ToastKind::Warning, L"HEADS UP", Widen(e.text));
