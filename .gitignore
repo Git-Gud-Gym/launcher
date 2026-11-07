@@ -1,3 +1,4 @@
 build/
 bin/
 dist/
+.claude/settings.local.json
