@@ -3,7 +3,7 @@
 Each game is released separately and has its own version, tagged `<game>-v<version>`
 (e.g. `eldenring-v0.1.0`). The release workflow publishes the matching section below as the release notes.
 
-## Unreleased
+## Elden Ring v0.2.0 - 2026-11-07
 
 - **Finds the game by itself:** searches every Steam library, Steam's install record, and common folders
   on every drive.
