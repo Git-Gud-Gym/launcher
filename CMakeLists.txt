@@ -50,11 +50,14 @@ add_executable(app WIN32
     src/app/ui.cpp
     src/app/overlay.cpp
     src/app/injector.cpp
+    src/app/locator.cpp
     src/app/app.rc
 )
 set_target_properties(app PROPERTIES OUTPUT_NAME GitGudGym)
 target_compile_options(app PRIVATE $<$<COMPILE_LANGUAGE:CXX>:/W4>)
 target_link_libraries(app PRIVATE imgui d3d11 dxgi d3dcompiler dwmapi windowscodecs gdiplus winmm version)
+# Always run elevated: attaching to the game and launching it as admin both need it.
+target_link_options(app PRIVATE "/MANIFESTUAC:level='requireAdministrator' uiAccess='false'")
 
 # Ship the default config and assets next to the binaries, but never clobber a user-edited config.
 add_custom_command(TARGET app POST_BUILD

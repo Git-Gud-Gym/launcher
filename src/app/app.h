@@ -51,6 +51,9 @@ public:
     void PrimaryAction();  // the game card's button
     void OpenStatsFolder() const;
     void OpenLog() const;
+    void LaunchGame();
+    void BrowseForGame();
+    void DetectGame();
 
     // Read by the UI
     ggg::SharedState* shared = nullptr;
@@ -67,6 +70,9 @@ public:
     float scale = 1.0f;
     HWND window = nullptr;
     std::filesystem::path dir;
+    std::filesystem::path gamePath;  // eldenring.exe
+    bool gameFound = false;
+    std::string locateMessage;  // feedback after Auto-detect / Browse
 
 private:
     void UpdateConnection();
@@ -74,8 +80,9 @@ private:
     void OnEvent(const ggg::Event& e, bool live);
     void Persist();
     void OnGameFound(DWORD pid);
+    void SetGamePath(const std::filesystem::path& exe);
 
-    std::filesystem::path ini_, dll_, gamePath_;
+    std::filesystem::path ini_, dll_;
     HANDLE mapping_ = nullptr;
     Overlay overlay_;
     uint32_t lastEventSeq_ = 0;

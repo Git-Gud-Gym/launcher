@@ -40,31 +40,44 @@ learn the moveset, and every attempt is logged so you can watch yourself improve
 
 1. **Download** `GitGudGym-EldenRing-v*.zip` from the
    [latest release](https://github.com/ryyanrashid01/git-gud-gym/releases/latest) and extract it anywhere.
-2. **Start Elden Ring offline, without Easy Anti-Cheat.** See the next section.
-3. **Run `GitGudGym.exe`.** Once the game has loaded, the app attaches the mod automatically and the
-   game card turns **Active**.
+2. **Run `GitGudGym.exe`** and accept the administrator prompt. The app needs admin rights to attach
+   to the game and to launch it.
+3. **Click Launch game.** The app finds your Elden Ring install by itself (see
+   [Finding the game](#finding-the-game)) and starts it offline, without Easy Anti-Cheat. Once the game
+   has loaded, the mod attaches automatically and the game card turns **Active**.
 4. **Walk into a boss arena** and fight. The boss shows up under *Live fight*.
 
 > [!IMPORTANT]
 > Use Git Gud Gym **offline only**. The app refuses to attach while Easy Anti-Cheat is running.
 > Modding the game online can get your account flagged.
 
+### Finding the game
+
+On start, the app looks for `eldenring.exe` in these places, in order:
+
+- every Steam library listed in Steam's settings, including libraries on other drives
+- the folder Steam's uninstaller records for Elden Ring
+- common folders on every drive, such as `X:\SteamLibrary`, `X:\Games\ELDEN RING` and `Program Files`
+
+The location shows in the sidebar under **Game location**. If it's wrong or missing, click
+**Browse…** and pick `eldenring.exe` inside the game's `Game` folder. Starting the game yourself
+also works: the app remembers wherever it sees the game running.
+
 ### Running Elden Ring without Easy Anti-Cheat (Steam)
 
-1. In the game folder (`...\steamapps\common\ELDEN RING\Game`), create a text file named
-   `steam_appid.txt` containing just `1245620`.
-2. With Steam running, start `eldenring.exe` directly from that folder. Don't use the Play button,
-   which starts the anti-cheat. Or start it with **Launch game** in the app.
-3. The game runs in offline mode without anti-cheat. Delete `steam_appid.txt` and use Steam's Play
-   button to go back online.
+**Launch game** handles this for you. The first time, it asks before creating `steam_appid.txt`
+(containing `1245620`) in the game folder. That file lets `eldenring.exe` start directly, offline,
+instead of relaunching through Steam with anti-cheat.
+
+To do it by hand:
+1. Create the file in the game folder.
+2. With Steam running, start `eldenring.exe` directly. Don't use Steam's Play button.
+
+To play online again, delete `steam_appid.txt` and use Steam's Play button.
 
 > [!TIP]
 > On-screen notifications and the HUD need **Borderless** or **Windowed** display mode. Exclusive
 > fullscreen draws over them.
-
-If the game runs as administrator, the app shows **Restart as admin**, since only an elevated app
-can attach to an elevated game. You can also untick "Run this program as an administrator" in
-`eldenring.exe`'s compatibility settings.
 
 ## Controls
 

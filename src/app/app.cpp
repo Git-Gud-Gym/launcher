@@ -5,6 +5,9 @@
 
 #include <cstdio>
 #include <cstring>
+#include <fstream>
+
+#include "locator.h"
 
 namespace fs = std::filesystem;
 using Clock = std::chrono::steady_clock;
@@ -15,8 +18,6 @@ namespace {
 constexpr const wchar_t* kGameExe = L"eldenring.exe";
 constexpr const wchar_t* kDllName = L"gitgudgym.dll";
 constexpr double kGameWarmupSec = 20;  // let the game finish unpacking before injecting
-constexpr const wchar_t* kDefaultGamePath =
-    L"C:\\Program Files (x86)\\Steam\\steamapps\\common\\ELDEN RING\\Game\\eldenring.exe";
 
 // eldenring.exe file version -> game patch. Only versions the offsets were verified against are "tested".
 struct KnownVersion {
@@ -68,8 +69,10 @@ bool App::Init(HINSTANCE instance, HWND hwnd) {
     dll_ = dir / kDllName;
 
     wchar_t game[MAX_PATH]{};
-    GetPrivateProfileStringW(L"app", L"game_path", kDefaultGamePath, game, MAX_PATH, ini_.c_str());
-    gamePath_ = game;
+    GetPrivateProfileStringW(L"app", L"game_path", L"", game, MAX_PATH, ini_.c_str());
+    gamePath = game;
+    gameFound = locator::IsGameExe(gamePath);
+    if (!gameFound) DetectGame();
 
     prefs.toasts = ReadBool(ini_, L"toasts", true);
     prefs.hud = ReadBool(ini_, L"hud", true);
@@ -114,7 +117,7 @@ void App::PrimaryAction() {
             SendCommand(ggg::Command::Unload);
             break;
         case Conn::NoGame:
-            ShellExecuteW(nullptr, L"open", gamePath_.c_str(), nullptr, gamePath_.parent_path().c_str(), SW_SHOWNORMAL);
+            LaunchGame();
             break;
         case Conn::NeedsAdmin:
             if (injector::RelaunchElevated()) PostMessageW(window, WM_CLOSE, 0, 0);
@@ -128,6 +131,47 @@ void App::PrimaryAction() {
         default:
             break;
     }
+}
+
+void App::SetGamePath(const fs::path& exe) {
+    gamePath = exe;
+    gameFound = locator::IsGameExe(exe);
+    WritePrivateProfileStringW(L"app", L"game_path", exe.c_str(), ini_.c_str());
+}
+
+void App::DetectGame() {
+    if (auto found = locator::AutoDetect()) {
+        SetGamePath(*found);
+        locateMessage = "Found automatically.";
+    } else {
+        locateMessage = "Not found in your Steam libraries or the usual folders. Use Browse.";
+    }
+}
+
+void App::BrowseForGame() {
+    if (auto picked = locator::Browse(window)) {
+        SetGamePath(*picked);
+        locateMessage.clear();
+    }
+}
+
+void App::LaunchGame() {
+    if (!gameFound) {
+        BrowseForGame();
+        if (!gameFound) return;
+    }
+    // A Steam copy started directly relaunches through Steam with Easy Anti-Cheat unless steam_appid.txt exists.
+    const fs::path appId = gamePath.parent_path() / L"steam_appid.txt";
+    if (locator::IsSteamInstall(gamePath) && !fs::exists(appId)) {
+        const int answer = MessageBoxW(
+            window,
+            L"To start Elden Ring offline without Easy Anti-Cheat, Git Gud Gym will create steam_appid.txt in the "
+            L"game folder.\n\nDelete that file to play online again.\n\nContinue?",
+            L"Git Gud Gym", MB_YESNO | MB_ICONINFORMATION);
+        if (answer != IDYES) return;
+        std::ofstream(appId) << "1245620";
+    }
+    ShellExecuteW(nullptr, L"open", gamePath.c_str(), nullptr, gamePath.parent_path().c_str(), SW_SHOWNORMAL);
 }
 
 void App::OpenStatsFolder() const {
@@ -221,10 +265,7 @@ void App::OnGameFound(DWORD pid) {
     const std::wstring path = injector::ProcessPath(pid);
     if (path.empty()) return;
     // Remember where the game lives so "Launch game" works next time.
-    if (fs::path(path) != gamePath_) {
-        gamePath_ = path;
-        WritePrivateProfileStringW(L"app", L"game_path", path.c_str(), ini_.c_str());
-    }
+    if (fs::path(path) != gamePath) SetGamePath(path);
     const std::string exe = injector::FileVersion(path);
     gameVersion = "exe " + exe;
     gameVersionTested = false;

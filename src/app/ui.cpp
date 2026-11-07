@@ -273,7 +273,11 @@ void GameCard(App& app) {
     View v{};
     switch (app.conn) {
         case Conn::NoGame:
-            v = {"Not running", kMuted, "Start the game; the mod attaches automatically.", "Launch game", true};
+            v = app.gameFound
+                    ? View{"Not running", kMuted, "Launch the game here or start it yourself; the mod attaches automatically.",
+                           "Launch game", true}
+                    : View{"Game not found", kAmber, "Point Git Gud Gym at eldenring.exe to launch from here.",
+                           "Locate game", true};
             break;
         case Conn::GameStarting:
             v = {"Game starting", kAmber, "Waiting for the game to finish loading...", nullptr, false};
@@ -336,6 +340,35 @@ void GameCard(App& app) {
     ImGui::EndChild();
 }
 
+// Where eldenring.exe is, with ways to change it.
+void GameLocation(App& app) {
+    SmallLabel(app, "GAME LOCATION");
+    ImGui::PushFont(app.fonts.note);
+    ImGui::PushTextWrapPos(0);
+    if (app.gameFound) {
+        // The interesting part is the folder; show it without the exe name.
+        const std::string folder = app.gamePath.parent_path().string();
+        ImGui::TextUnformatted(folder.c_str());
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", app.gamePath.string().c_str());
+    } else {
+        ImGui::PushStyleColor(ImGuiCol_Text, kAmber);
+        ImGui::TextUnformatted("Not set");
+        ImGui::PopStyleColor();
+    }
+    if (!app.locateMessage.empty()) {
+        ImGui::PushStyleColor(ImGuiCol_Text, kMuted);
+        ImGui::TextUnformatted(app.locateMessage.c_str());
+        ImGui::PopStyleColor();
+    }
+    ImGui::PopTextWrapPos();
+    ImGui::PopFont();
+
+    const float half = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) / 2;
+    if (Button("Browse...", false, half)) app.BrowseForGame();
+    ImGui::SameLine();
+    if (Button("Auto-detect", false, half)) app.DetectGame();
+}
+
 void Sidebar(App& app) {
     ImGui::PushStyleColor(ImGuiCol_ChildBg, kSidebar);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(S(18), S(18)));
@@ -345,6 +378,9 @@ void Sidebar(App& app) {
 
     SmallLabel(app, "GAME");
     GameCard(app);
+
+    ImGui::Dummy(ImVec2(0, S(10)));
+    GameLocation(app);
 
     ImGui::Dummy(ImVec2(0, S(10)));
     SmallLabel(app, "HOTKEYS (IN GAME)");
@@ -452,7 +488,8 @@ void SessionCard(App& app) {
 }
 
 void ActivityCard(App& app) {
-    BeginCard("activity", "Activity", app, std::max(ImGui::GetContentRegionAvail().y - S(6), S(170)));
+    // Fill whatever is left of the column so it never needs to scroll.
+    BeginCard("activity", "Activity", app, std::max(ImGui::GetContentRegionAvail().y - S(6), S(90)));
     if (app.feed.empty()) SmallLabel(app, "Deaths, defeats and boss changes show up here.");
     for (const FeedItem& f : app.feed) {
         ImVec4 dot = kMuted;
@@ -547,7 +584,7 @@ void Main(App& app) {
     ImGui::Dummy(ImVec2(0, S(4)));
 
     const float leftW = (ImGui::GetContentRegionAvail().x - gap) * 0.56f;
-    ImGui::BeginChild("left", ImVec2(leftW, 0));
+    ImGui::BeginChild("left", ImVec2(leftW, 0), 0, ImGuiWindowFlags_NoScrollbar);
     LiveCard(app);
     SessionCard(app);
     ActivityCard(app);

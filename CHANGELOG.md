@@ -3,6 +3,17 @@
 Each game is released separately and has its own version, tagged `<game>-v<version>`
 (e.g. `eldenring-v0.1.0`). The release workflow publishes the matching section below as the release notes.
 
+## Unreleased
+
+- **Finds the game by itself:** searches every Steam library, Steam's install record, and common folders
+  on every drive.
+- **Game location in the sidebar:** shows where the game is, with **Browse…** and **Auto-detect** buttons.
+- **Launch game starts the game offline:** on Steam copies it offers to create `steam_appid.txt`, so the
+  game starts without Easy Anti-Cheat.
+- **Admin on start:** the app asks for administrator rights when it starts, so it can launch and attach
+  to the game even when the game runs as admin.
+- The left column no longer scrolls.
+
 ## Elden Ring v0.1.0 - 2026-11-07
 
 First release. Tested on Elden Ring **1.12.0** (`eldenring.exe` 2.2.0.0).
