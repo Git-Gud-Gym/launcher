@@ -1,0 +1,43 @@
+name: Bug report
+description: Something doesn't work in the app or in a game module.
+labels: [bug]
+body:
+  - type: dropdown
+    id: game
+    attributes:
+      label: Game
+      options: [Elden Ring, Not game-specific (the app)]
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: Shown in the app's game page header and title bar.
+      placeholder: "App v0.3.0, module v0.3.0, game 1.12.0"
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: "1. Walked into Margit's arena\n2. ..."
+  - type: textarea
+    id: log
+    attributes:
+      label: gitgudgym.log
+      description: Press F8 in game first, then use the Log button on the game page and paste the end of the file here.
+      render: text
+  - type: checkboxes
+    id: offline
+    attributes:
+      label: Checks
+      options:
+        - label: I'm playing offline, without anti-cheat.
+          required: true

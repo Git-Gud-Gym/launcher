@@ -1,41 +1,61 @@
-# Packages bin\ into dist\GitGudGym-EldenRing-v<version>.zip. Run build.bat first.
+# Packages a build from bin\ into dist\<target>\. Run build.bat first.
+#
+#   ./scripts/package.ps1 -Target app            # GitGudGym-v<version>.zip
+#   ./scripts/package.ps1 -Target eldenring      # the module's files + a zip for manual installs
+#
+# -Version (optional) must match the source version; CI passes the tag's version so a mistagged
+# release fails instead of shipping the wrong build.
 param(
-    # Defaults to the version in CMakeLists.txt; CI passes the tag's version and this checks they match.
+    [Parameter(Mandatory)][string]$Target,
     [string]$Version
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
+$dist = Join-Path $root "dist\$Target"
+Remove-Item -Recurse -Force $dist -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Force $dist | Out-Null
 
-$cmakeVersion = (Select-String -Path "$root\CMakeLists.txt" -Pattern 'project\(GitGudGym VERSION ([0-9.]+)').Matches[0].Groups[1].Value
-if (-not $Version) { $Version = $cmakeVersion }
-if ($Version -ne $cmakeVersion) {
-    throw "Tag version $Version doesn't match CMakeLists.txt version $cmakeVersion. Bump the version before tagging."
+function Assert-Version([string]$expected) {
+    if ($Version -and $Version -ne $expected) {
+        throw "Tag version $Version doesn't match the source version $expected. Bump it before tagging."
+    }
 }
 
-$name = "GitGudGym-EldenRing-v$Version"
-$stage = Join-Path $root "dist\$name"
-Remove-Item -Recurse -Force $stage -ErrorAction SilentlyContinue
-New-Item -ItemType Directory -Force "$stage\assets" | Out-Null
-
-Copy-Item "$root\bin\GitGudGym.exe", "$root\bin\gitgudgym.dll" $stage
-# The pristine default config, never a developer's edited copy from bin\.
-Copy-Item "$root\config\gitgudgym.ini" $stage
-Copy-Item "$root\assets\logo_mark.png" "$stage\assets\logo.png"
-Copy-Item "$root\assets\mixkit-gaming-lock-2848.wav" "$stage\assets\notify.wav"
-Copy-Item "$root\LICENSE" "$stage\LICENSE.txt"
-@"
-Git Gud Gym v$Version for Elden Ring
+if ($Target -eq 'app') {
+    $appVersion = (Select-String -Path "$root\CMakeLists.txt" -Pattern 'project\(GitGudGym VERSION ([0-9.]+)').Matches[0].Groups[1].Value
+    Assert-Version $appVersion
+    $stage = Join-Path $dist 'GitGudGym'
+    New-Item -ItemType Directory -Force "$stage\assets" | Out-Null
+    Copy-Item "$root\bin\GitGudGym.exe" $stage
+    Copy-Item "$root\bin\assets\*" "$stage\assets"
+    Copy-Item "$root\LICENSE" "$stage\LICENSE.txt"
+    @"
+Git Gud Gym v$appVersion
 https://github.com/ryyanrashid01/git-gud-gym
 
-1. Start Elden Ring OFFLINE, without Easy Anti-Cheat (see the README on GitHub).
-2. Run GitGudGym.exe. It attaches to the game automatically.
-3. Walk into a boss arena and start practicing.
+1. Run GitGudGym.exe (it asks for administrator rights).
+2. In the Library, install the module for your game.
+3. Click Launch game. Play offline, without anti-cheat.
 
-Stats are saved to the stats folder next to GitGudGym.exe.
-Problems? Press F8 in game, then open an issue on GitHub with gitgudgym.log attached.
+Stats and settings live in %LOCALAPPDATA%\GitGudGym.
 "@ | Set-Content -Encoding UTF8 "$stage\READ ME.txt"
+    Compress-Archive -Path $stage -DestinationPath "$dist\GitGudGym-v$appVersion.zip"
+    Remove-Item -Recurse -Force $stage
+    Write-Host "Packaged app $appVersion"
+    return
+}
 
-$zip = Join-Path $root "dist\$name.zip"
-Remove-Item -Force $zip -ErrorAction SilentlyContinue
-Compress-Archive -Path $stage -DestinationPath $zip
-Write-Host "Packaged $zip"
+$moduleDir = Join-Path $root "bin\modules\$Target"
+$manifest = Get-Content "$moduleDir\module.json" -Raw | ConvertFrom-Json
+Assert-Version $manifest.version
+# The app downloads these individually (checksummed by the catalog)...
+foreach ($file in $manifest.files) { Copy-Item (Join-Path $moduleDir $file) $dist }
+# ...and the zip is for people who install by hand into %LOCALAPPDATA%\GitGudGym\modules\<id>.
+$name = ($manifest.name -replace '[^A-Za-z0-9]', '')
+$stage = Join-Path $env:TEMP "ggg-package-$Target"
+Remove-Item -Recurse -Force $stage -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Force "$stage\$Target" | Out-Null
+foreach ($file in $manifest.files) { Copy-Item (Join-Path $moduleDir $file) "$stage\$Target" }
+Compress-Archive -Path "$stage\$Target" -DestinationPath "$dist\GitGudGym-$name-module-v$($manifest.version).zip"
+Remove-Item -Recurse -Force $stage
+Write-Host "Packaged $($manifest.name) module $($manifest.version)"

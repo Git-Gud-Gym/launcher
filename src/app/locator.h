@@ -4,19 +4,21 @@
 #include <filesystem>
 #include <optional>
 
-// Finds eldenring.exe on the user's machine.
+#include "modules.h"
+
+// Finds a module's game executable on the user's machine.
 namespace locator {
 
-bool IsGameExe(const std::filesystem::path& path);
+bool IsGameExe(const ModuleManifest& m, const std::filesystem::path& path);
 
-// Checks Steam (registry + every library in libraryfolders.vdf), the uninstall entry,
-// and common folders on every fixed drive. Returns the first eldenring.exe found.
-std::optional<std::filesystem::path> AutoDetect();
+// Checks Steam (registry + every library in libraryfolders.vdf), Steam's uninstall entry,
+// and common folders on every fixed drive. Returns the first match.
+std::optional<std::filesystem::path> AutoDetect(const ModuleManifest& m);
 
-// Lets the user pick eldenring.exe. Returns nothing if they cancel.
-std::optional<std::filesystem::path> Browse(HWND owner);
+// Lets the user pick the game's exe. Returns nothing if they cancel or pick something else.
+std::optional<std::filesystem::path> Browse(HWND owner, const ModuleManifest& m);
 
-// True for a Steam install, where the game needs steam_appid.txt to start without Easy Anti-Cheat.
+// True for a Steam install, where the game needs steam_appid.txt to start without anti-cheat.
 bool IsSteamInstall(const std::filesystem::path& exe);
 
 }  // namespace locator

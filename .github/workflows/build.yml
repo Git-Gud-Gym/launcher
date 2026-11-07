@@ -3,6 +3,7 @@ name: Build
 on:
   push:
     branches: [main]
+    paths-ignore: ['site/**', '**.md']
   pull_request:
 
 jobs:
@@ -15,11 +16,13 @@ jobs:
         shell: cmd
         run: build.bat
 
-      - name: Package
+      - name: Package the app and every game module
         shell: pwsh
-        run: ./scripts/package.ps1
+        run: |
+          ./scripts/package.ps1 -Target app
+          foreach ($game in Get-ChildItem src/games -Directory) { ./scripts/package.ps1 -Target $game.Name }
 
       - uses: actions/upload-artifact@v4
         with:
-          name: GitGudGym-EldenRing-${{ github.sha }}
-          path: dist/*.zip
+          name: GitGudGym-${{ github.sha }}
+          path: dist/

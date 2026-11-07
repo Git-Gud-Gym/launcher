@@ -1,6 +1,7 @@
-#include "game.h"
+#include "eldenring_game.h"
 
 #include <cmath>
+#include <cstdio>
 
 #include "memory.h"
 
@@ -14,16 +15,7 @@ constexpr size_t kMaxCharacters = 8192;
 
 }  // namespace
 
-float Distance(const Vec3& a, const Vec3& b) {
-    const float dx = a.x - b.x, dy = a.y - b.y, dz = a.z - b.z;
-    return std::sqrt(dx * dx + dy * dy + dz * dz);
-}
-
-float Distance(const ChrState& a, const ChrState& b) {
-    return a.hasPos && b.hasPos ? Distance(a.pos, b.pos) : INFINITY;
-}
-
-bool Game::Init(std::string& err) {
+bool EldenRingGame::Init(std::string& err) {
     const mem::Module exe = mem::MainModule();
     if (!worldChrManGlobal_) {
         if (uintptr_t hit = mem::FindPattern(exe, kWorldChrManPattern)) {
@@ -42,14 +34,14 @@ bool Game::Init(std::string& err) {
     return true;
 }
 
-uintptr_t Game::WorldChrMan() const { return mem::ReadPtr(worldChrManGlobal_); }
+uintptr_t EldenRingGame::WorldChrMan() const { return mem::ReadPtr(worldChrManGlobal_); }
 
-uintptr_t Game::Player() const {
+uintptr_t EldenRingGame::Player() const {
     uintptr_t wcm = WorldChrMan();
     return wcm ? mem::ReadPtr(wcm + off_.player) : 0;
 }
 
-std::vector<uintptr_t> Game::Characters() const {
+std::vector<uintptr_t> EldenRingGame::Characters() const {
     std::vector<uintptr_t> out;
     uintptr_t wcm = WorldChrMan();
     if (!wcm) return out;
@@ -63,14 +55,7 @@ std::vector<uintptr_t> Game::Characters() const {
     return out;
 }
 
-bool Game::IsLoaded(uintptr_t chr) const {
-    for (uintptr_t c : Characters()) {
-        if (c == chr) return true;
-    }
-    return false;
-}
-
-std::optional<ChrState> Game::ReadChr(uintptr_t chr) const {
+std::optional<ChrState> EldenRingGame::ReadChr(uintptr_t chr) const {
     if (!mem::IsPlausiblePtr(chr)) return std::nullopt;
     uintptr_t modules = mem::ReadPtr(chr + off_.chrModules);
     if (!modules) return std::nullopt;
@@ -83,12 +68,12 @@ std::optional<ChrState> Game::ReadChr(uintptr_t chr) const {
 
     ChrState s;
     s.chr = chr;
-    s.data = data;
     s.hp = *hp;
     s.maxHp = *maxHp;
+    s.internal[kData] = data;
     if (uintptr_t phys = mem::ReadPtr(modules + off_.modulePhysics)) {
         if (auto pos = mem::Read<Vec3>(phys + off_.physicsPos); pos && std::isfinite(pos->x)) {
-            s.physics = phys;
+            s.internal[kPhysics] = phys;
             s.pos = *pos;
             s.hasPos = true;
         }
@@ -96,24 +81,37 @@ std::optional<ChrState> Game::ReadChr(uintptr_t chr) const {
     return s;
 }
 
-bool Game::SetHp(const ChrState& s, int hp) const { return mem::Write<int32_t>(s.data + off_.dataHp, hp); }
-
-bool Game::SetPosition(const ChrState& s, const Vec3& pos) const {
-    return s.physics && mem::Write<Vec3>(s.physics + off_.physicsPos, pos);
+bool EldenRingGame::SetHp(const ChrState& s, int hp) const {
+    return mem::Write<int32_t>(s.internal[kData] + off_.dataHp, hp);
 }
 
-std::optional<uint8_t> Game::FlagByte(const ChrState& s) const {
-    return mem::Read<uint8_t>(s.data + off_.dataFlags);
+bool EldenRingGame::SetPosition(const ChrState& s, const Vec3& pos) const {
+    return s.internal[kPhysics] && mem::Write<Vec3>(s.internal[kPhysics] + off_.physicsPos, pos);
 }
 
-bool Game::SetNoDead(const ChrState& s, bool on) const {
-    auto flags = FlagByte(s);
+bool EldenRingGame::SetNoDead(const ChrState& s, bool on, bool isPlayer) const {
+    if (isPlayer && off_.useDbgPlayerNoDead && chrDbgFlags_) {
+        mem::Write<uint8_t>(chrDbgFlags_ + off_.dbgPlayerNoDead, on ? 1 : 0);
+    }
+    const uintptr_t addr = s.internal[kData] + off_.dataFlags;
+    auto flags = mem::Read<uint8_t>(addr);
     if (!flags) return false;
     const uint8_t bit = static_cast<uint8_t>(1u << off_.noDeadBit);
     const uint8_t want = on ? (*flags | bit) : (*flags & ~bit);
-    return want == *flags || mem::Write<uint8_t>(s.data + off_.dataFlags, want);
+    return want == *flags || mem::Write<uint8_t>(addr, want);
 }
 
-bool Game::SetDbgPlayerNoDead(bool on) const {
-    return chrDbgFlags_ && mem::Write<uint8_t>(chrDbgFlags_ + off_.dbgPlayerNoDead, on ? 1 : 0);
+std::vector<std::string> EldenRingGame::Describe(const ChrState* player) const {
+    char buf[160];
+    std::vector<std::string> lines;
+    std::snprintf(buf, sizeof(buf), "WorldChrMan global %p -> %p, ChrDbgFlags %p", (void*)worldChrManGlobal_,
+                  (void*)WorldChrMan(), (void*)chrDbgFlags_);
+    lines.push_back(buf);
+    if (player) {
+        auto flags = mem::Read<uint8_t>(player->internal[kData] + off_.dataFlags);
+        std::snprintf(buf, sizeof(buf), "  player data %p flags 0x%02X", (void*)player->internal[kData],
+                      flags ? *flags : 0);
+        lines.push_back(buf);
+    }
+    return lines;
 }

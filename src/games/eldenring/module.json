@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "id": "eldenring",
+  "name": "Elden Ring",
+  "version": "0.3.0",
+  "tagline": "Practice any boss forever: you and the boss can't die, every attempt is tracked.",
+  "dll": "gitgudgym-eldenring.dll",
+  "files": ["gitgudgym-eldenring.dll", "gitgudgym-eldenring.ini", "module.json"],
+  "features": [
+    "Player can't die: lethal hits refill HP and count as a death",
+    "Boss can't die: refills at 0 HP and counts as a defeat",
+    "Falling counts as death: respawn on the last solid ground",
+    "Let boss die once, for death-triggered phase changes",
+    "Per-attempt stats saved to CSV"
+  ],
+  "game": {
+    "exe": "eldenring.exe",
+    "steamAppId": 1245620,
+    "steamFolder": "ELDEN RING",
+    "exeSubdir": "Game",
+    "antiCheatProcesses": ["EasyAntiCheat_EOS.exe", "EasyAntiCheat.exe", "start_protected_game.exe"],
+    "versions": [
+      { "exe": "2.2.0.0", "patch": "1.12.0", "tested": true }
+    ]
+  }
+}

@@ -11,9 +11,10 @@
 #include <string>
 #include <vector>
 
-#include "../common/shared_state.h"
-#include "config.h"
-#include "game.h"
+#include "game_adapter.h"
+#include "ini.h"
+#include "paths.h"
+#include "shared_state.h"
 #include "stats.h"
 #include "version.h"
 
@@ -23,6 +24,24 @@ using namespace std::chrono_literals;
 using ggg::EventType;
 
 namespace {
+
+// Game-independent knobs, from the [general] and [boss] sections of the module's ini.
+struct CoreConfig {
+    int pollIntervalMs = 2;
+    std::string sessionLabel;
+    float bossSearchRadius = 80.0f;
+    int bossMinMaxHp = 300;
+};
+
+CoreConfig LoadCoreConfig(const fs::path& file) {
+    CoreConfig c;
+    ini::ReadNum(file, L"general", L"poll_interval_ms", c.pollIntervalMs);
+    c.sessionLabel = ini::ToUtf8(ini::ReadStr(file, L"general", L"session_label"));
+    ini::ReadNum(file, L"boss", L"search_radius", c.bossSearchRadius);
+    ini::ReadNum(file, L"boss", L"min_max_hp", c.bossMinMaxHp);
+    if (c.pollIntervalMs < 1) c.pollIntervalMs = 1;
+    return c;
+}
 
 // Talks to the desktop app through shared memory, and mirrors every event to gitgudgym.log.
 class Link {
@@ -106,7 +125,7 @@ bool GameFocused() {
 
 class Trainer {
 public:
-    Trainer(const Config& cfg, const Game& game, Link& link, const fs::path& statsDir)
+    Trainer(const CoreConfig& cfg, const GameAdapter& game, Link& link, const fs::path& statsDir)
         : cfg_(cfg), game_(game), link_(link), stats_(statsDir, cfg.sessionLabel) {}
 
     void Run() {
@@ -202,8 +221,7 @@ private:
 
     void UpdatePlayer(ChrState& ps) {
         const bool immortal = settings_.playerImmortal != 0;
-        game_.SetNoDead(ps, immortal);
-        if (cfg_.off.useDbgPlayerNoDead) game_.SetDbgPlayerNoDead(immortal);
+        game_.SetNoDead(ps, immortal, true);
         TrackGround(ps);
 
         const int prev = playerLastHp_;
@@ -288,7 +306,7 @@ private:
 
         const bool passThrough = settings_.passThrough != 0;
         const bool immortal = settings_.bossImmortal && !passThrough;
-        game_.SetNoDead(*bs, immortal);
+        game_.SetNoDead(*bs, immortal, false);
 
         const int prev = bossLastHp_;
         bossLastHp_ = bs->hp;
@@ -343,7 +361,7 @@ private:
     }
 
     void DropBoss(const char* why, bool abandonAttempt) {
-        if (auto bs = game_.ReadChr(bossChr_)) game_.SetNoDead(*bs, false);
+        if (auto bs = game_.ReadChr(bossChr_)) game_.SetNoDead(*bs, false, false);
         if (abandonAttempt) stats_.Abandon();
         if (why) link_.Event(EventType::BossLost, 0, 0, "Stopped tracking boss (%s)", why);
         manualPick_ = false;
@@ -371,15 +389,13 @@ private:
 
     void Probe() {
         link_.Log("--- probe ---");
-        link_.Log("WorldChrMan global %p -> %p, ChrDbgFlags %p", (void*)game_.worldChrManGlobal(),
-                  (void*)game_.WorldChrMan(), (void*)game_.chrDbgFlags());
         uintptr_t p = game_.Player();
-        link_.Log("Player ChrIns %p", (void*)p);
         auto ps = game_.ReadChr(p);
+        for (const std::string& line : game_.Describe(ps ? &*ps : nullptr)) link_.Log("%s", line.c_str());
+        link_.Log("Player %p", (void*)p);
         if (!ps) return;
-        auto flags = game_.FlagByte(*ps);
-        link_.Log("  hp %d/%d flags 0x%02X pos (%.1f, %.1f, %.1f)%s", ps->hp, ps->maxHp, flags ? *flags : 0,
-                  ps->pos.x, ps->pos.y, ps->pos.z, ps->hasPos ? "" : " UNREADABLE");
+        link_.Log("  hp %d/%d pos (%.1f, %.1f, %.1f)%s", ps->hp, ps->maxHp, ps->pos.x, ps->pos.y, ps->pos.z,
+                  ps->hasPos ? "" : " UNREADABLE");
         if (safe_) link_.Log("  last solid ground (%.1f, %.1f, %.1f)", safe_->x, safe_->y, safe_->z);
         auto chars = game_.Characters();
         int readable = 0;
@@ -438,14 +454,13 @@ private:
     }
 
     void Shutdown() {
-        if (auto ps = game_.ReadChr(game_.Player())) game_.SetNoDead(*ps, false);
-        if (cfg_.off.useDbgPlayerNoDead) game_.SetDbgPlayerNoDead(false);
+        if (auto ps = game_.ReadChr(game_.Player())) game_.SetNoDead(*ps, false, true);
         if (bossChr_) DropBoss(nullptr, true);
         stats_.FlushSession();
     }
 
-    const Config& cfg_;
-    const Game& game_;
+    const CoreConfig& cfg_;
+    const GameAdapter& game_;
     Link& link_;
     Stats stats_;
     ggg::Settings settings_;
@@ -470,26 +485,25 @@ private:
 
 }  // namespace
 
-void RunTrainer(HMODULE self) {
+void RunTrainer(HMODULE self, GameAdapter& game, const wchar_t* moduleId) {
     wchar_t path[MAX_PATH];
     GetModuleFileNameW(self, path, MAX_PATH);
-    const fs::path dir = fs::path(path).parent_path();
-    const fs::path ini = dir / L"gitgudgym.ini";
+    const fs::path moduleIni = fs::path(path).replace_extension(L".ini");
+    const fs::path data = ggg::paths::DataDir(moduleId);
 
-    const Config cfg = LoadConfig(ini);
-    Link link(dir / L"gitgudgym.log", ini);
-    link.Log("Git Gud Gym v" GGG_VERSION " loaded");
+    const CoreConfig cfg = LoadCoreConfig(moduleIni);
+    Link link(data / L"gitgudgym.log", ggg::paths::SettingsIni());
+    link.Log("Git Gud Gym v" GGG_V_STRING " loaded");
 
-    Game game(cfg.off);
     std::string err;
     for (int tries = 0; !game.Init(err); ++tries) {
         if (tries == 0) link.Event(EventType::Warning, 0, 0, "Waiting for the game: %s", err.c_str());
         if (Pressed(VK_F10)) return;
         Sleep(500);
     }
-    link.Log("WorldChrMan global at %p, ChrDbgFlags at %p", (void*)game.worldChrManGlobal(), (void*)game.chrDbgFlags());
+    for (const std::string& line : game.Describe(nullptr)) link.Log("%s", line.c_str());
 
-    Trainer trainer(cfg, game, link, dir / L"stats");
+    Trainer trainer(cfg, game, link, data / L"stats");
     trainer.Run();
     link.Log("Unloaded");
 }

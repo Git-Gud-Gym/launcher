@@ -3,8 +3,8 @@
 #include "version.h"
 
 VS_VERSION_INFO VERSIONINFO
-FILEVERSION GGG_VERSION_MAJOR, GGG_VERSION_MINOR, GGG_VERSION_PATCH, 0
-PRODUCTVERSION GGG_VERSION_MAJOR, GGG_VERSION_MINOR, GGG_VERSION_PATCH, 0
+FILEVERSION GGG_V_MAJOR, GGG_V_MINOR, GGG_V_PATCH, 0
+PRODUCTVERSION GGG_V_MAJOR, GGG_V_MINOR, GGG_V_PATCH, 0
 FILEOS VOS_NT_WINDOWS32
 FILETYPE VFT_APP
 BEGIN
@@ -14,10 +14,10 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Git Gud Gym"
             VALUE "FileDescription", GGG_FILE_DESCRIPTION
-            VALUE "FileVersion", GGG_VERSION
+            VALUE "FileVersion", GGG_V_STRING
             VALUE "OriginalFilename", GGG_ORIGINAL_FILENAME
             VALUE "ProductName", "Git Gud Gym"
-            VALUE "ProductVersion", GGG_VERSION
+            VALUE "ProductVersion", GGG_V_STRING
             VALUE "LegalCopyright", "MIT License"
         END
     END

@@ -15,13 +15,10 @@ namespace locator {
 
 namespace {
 
-constexpr const wchar_t* kExeName = L"eldenring.exe";
-const fs::path kSteamRelative = fs::path(L"steamapps") / L"common" / L"ELDEN RING" / L"Game" / kExeName;
-
-std::wstring RegString(HKEY root, const wchar_t* key, const wchar_t* value) {
+std::wstring RegString(HKEY root, const std::wstring& key, const wchar_t* value) {
     wchar_t buf[MAX_PATH * 2]{};
     DWORD size = sizeof(buf);
-    if (RegGetValueW(root, key, value, RRF_RT_REG_SZ, nullptr, buf, &size) != ERROR_SUCCESS) return {};
+    if (RegGetValueW(root, key.c_str(), value, RRF_RT_REG_SZ, nullptr, buf, &size) != ERROR_SUCCESS) return {};
     return buf;
 }
 
@@ -50,29 +47,36 @@ std::vector<fs::path> SteamLibraries() {
     return libs;
 }
 
-std::vector<fs::path> Candidates() {
+std::vector<fs::path> Candidates(const ModuleManifest& m) {
     std::vector<fs::path> out;
-    for (const fs::path& lib : SteamLibraries()) out.push_back(lib / kSteamRelative);
+    const fs::path inSteam = fs::path(L"steamapps") / L"common" / m.steamFolder / m.exeSubdir / m.exe;
+    if (!m.steamFolder.empty()) {
+        for (const fs::path& lib : SteamLibraries()) out.push_back(lib / inSteam);
+    }
 
     // Steam's uninstall entry knows the install folder even when the library isn't the default one.
-    const std::wstring installed = RegString(
-        HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Steam App 1245620",
-        L"InstallLocation");
-    if (!installed.empty()) out.push_back(fs::path(installed) / L"Game" / kExeName);
+    if (m.steamAppId) {
+        const std::wstring installed =
+            RegString(HKEY_LOCAL_MACHINE,
+                      L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Steam App " +
+                          std::to_wstring(m.steamAppId),
+                      L"InstallLocation");
+        if (!installed.empty()) out.push_back(fs::path(installed) / m.exeSubdir / m.exe);
+    }
 
     // Common hand-made locations on every fixed drive.
     const DWORD drives = GetLogicalDrives();
     for (wchar_t letter = L'A'; letter <= L'Z'; ++letter) {
         if (!(drives & (1u << (letter - L'A')))) continue;
-        const std::wstring root = std::wstring(1, letter) + L":\\";
+        const fs::path root = std::wstring(1, letter) + L":\\";
         if (GetDriveTypeW(root.c_str()) != DRIVE_FIXED) continue;
         for (const wchar_t* dir : {L"SteamLibrary", L"Steam", L"Games\\Steam", L"Games\\SteamLibrary",
                                    L"Program Files (x86)\\Steam", L"Program Files\\Steam"}) {
-            out.push_back(fs::path(root) / dir / kSteamRelative);
+            out.push_back(root / dir / inSteam);
         }
-        for (const wchar_t* dir : {L"Games\\ELDEN RING", L"ELDEN RING", L"Program Files\\ELDEN RING",
-                                   L"Program Files (x86)\\ELDEN RING"}) {
-            out.push_back(fs::path(root) / dir / L"Game" / kExeName);
+        if (m.steamFolder.empty()) continue;
+        for (const wchar_t* dir : {L"Games", L"", L"Program Files", L"Program Files (x86)"}) {
+            out.push_back(root / dir / m.steamFolder / m.exeSubdir / m.exe);
         }
     }
     return out;
@@ -80,26 +84,28 @@ std::vector<fs::path> Candidates() {
 
 }  // namespace
 
-bool IsGameExe(const fs::path& path) {
+bool IsGameExe(const ModuleManifest& m, const fs::path& path) {
     std::error_code ec;
-    return _wcsicmp(path.filename().c_str(), kExeName) == 0 && fs::is_regular_file(path, ec);
+    return _wcsicmp(path.filename().c_str(), m.exe.c_str()) == 0 && fs::is_regular_file(path, ec);
 }
 
-std::optional<fs::path> AutoDetect() {
-    for (const fs::path& candidate : Candidates()) {
-        if (IsGameExe(candidate)) return candidate;
+std::optional<fs::path> AutoDetect(const ModuleManifest& m) {
+    for (const fs::path& candidate : Candidates(m)) {
+        if (IsGameExe(m, candidate)) return candidate;
     }
     return std::nullopt;
 }
 
-std::optional<fs::path> Browse(HWND owner) {
+std::optional<fs::path> Browse(HWND owner, const ModuleManifest& m) {
     IFileOpenDialog* dialog = nullptr;
     if (FAILED(CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&dialog)))) {
         return std::nullopt;
     }
-    const COMDLG_FILTERSPEC filter[] = {{L"Elden Ring (eldenring.exe)", kExeName}};
+    const std::wstring label = L"Game executable (" + m.exe + L")";
+    const COMDLG_FILTERSPEC filter[] = {{label.c_str(), m.exe.c_str()}};
     dialog->SetFileTypes(1, filter);
-    dialog->SetTitle(L"Find eldenring.exe (inside the game's \"Game\" folder)");
+    const std::wstring title = L"Find " + m.exe;
+    dialog->SetTitle(title.c_str());
     dialog->SetOptions(FOS_FILEMUSTEXIST | FOS_FORCEFILESYSTEM);
 
     std::optional<fs::path> result;
@@ -107,7 +113,7 @@ std::optional<fs::path> Browse(HWND owner) {
     if (SUCCEEDED(dialog->Show(owner)) && SUCCEEDED(dialog->GetResult(&item))) {
         PWSTR path = nullptr;
         if (SUCCEEDED(item->GetDisplayName(SIGDN_FILESYSPATH, &path))) {
-            if (IsGameExe(path)) result = fs::path(path);
+            if (IsGameExe(m, path)) result = fs::path(path);
             CoTaskMemFree(path);
         }
         item->Release();

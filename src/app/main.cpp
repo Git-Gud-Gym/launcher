@@ -3,6 +3,7 @@
 #include <d3d11.h>
 #include <dwmapi.h>
 #include <wincodec.h>
+#include <shellapi.h>
 #include <windowsx.h>
 
 #include <algorithm>
@@ -127,6 +128,7 @@ void LoadFonts(App& app, float scale) {
     app.fonts.heading = orBody(font(L"bahnschrift.ttf", 21));
     app.fonts.big = orBody(font(L"bahnschrift.ttf", 36));
     app.fonts.brand = orBody(font(L"bahnschrift.ttf", 22));
+    app.fonts.title = orBody(font(L"bahnschrift.ttf", 30));
     io.FontDefault = app.fonts.body;
 }
 
@@ -162,7 +164,7 @@ LRESULT WINAPI WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
 }  // namespace
 
-int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
+int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR cmdLine, int) {
     // One instance only: a second copy would fight over attaching.
     HANDLE single = CreateMutexW(nullptr, TRUE, L"Local\\GitGudGym.App");
     if (GetLastError() == ERROR_ALREADY_EXISTS) {
@@ -190,7 +192,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
     RECT work;
     SystemParametersInfoW(SPI_GETWORKAREA, 0, &work, 0);
     const int w = static_cast<int>(1200 * g_scale);
-    const int h = std::min(static_cast<int>(880 * g_scale), static_cast<int>(work.bottom - work.top - 32 * g_scale));
+    const int h = std::min(static_cast<int>(940 * g_scale), static_cast<int>(work.bottom - work.top - 32 * g_scale));
     HWND hwnd = CreateWindowExW(0, wc.lpszClassName, L"Git Gud Gym", WS_POPUP | WS_MINIMIZEBOX | WS_SYSMENU,
                                 work.left + (work.right - work.left - w) / 2, work.top + (work.bottom - work.top - h) / 2,
                                 w, h, nullptr, nullptr, instance, nullptr);
@@ -217,6 +219,18 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
 
     App app;
     app.scale = g_scale;
+    // GitGudGym.exe --install <id>: install a game module once the library has loaded.
+    int argc = 0;
+    if (LPWSTR* argv = CommandLineToArgvW(cmdLine, &argc)) {
+        for (int i = 0; i + 1 < argc; ++i) {
+            if (wcscmp(argv[i], L"--install") == 0) {
+                std::string id;
+                for (const wchar_t* c = argv[i + 1]; *c; ++c) id += static_cast<char>(*c & 0x7F);
+                app.InstallWhenReady(id);
+            }
+        }
+        LocalFree(argv);
+    }
     if (!app.Init(instance, hwnd)) {
         MessageBoxW(hwnd, L"Couldn't create the shared memory block for the mod.", L"Git Gud Gym", MB_ICONERROR);
         return 1;

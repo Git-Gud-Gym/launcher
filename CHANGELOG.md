@@ -1,7 +1,28 @@
 # Changelog
 
-Each game is released separately and has its own version, tagged `<game>-v<version>`
-(e.g. `eldenring-v0.1.0`). The release workflow publishes the matching section below as the release notes.
+The hub app and each game module are released separately, each with its own version:
+`app-v<version>` and `<game>-v<version>` (e.g. `eldenring-v0.3.0`). The release workflow publishes the
+matching section below ("## App v…" / "## Elden Ring v…") as the release notes.
+
+## App v0.3.0 - unreleased
+
+First release of Git Gud Gym as a hub: install it once, then add the games you play.
+
+- **Library:** browse supported and planned games, and install, update or remove each game's module
+  in one click. Every download is checked against a SHA-256 published in the catalog before anything
+  is installed.
+- **Game pages:** each installed game has its own page with launch, attach, live stats, toggles and
+  game location.
+- **Game-agnostic attach:** the exe name, anti-cheat processes, Steam location and tested versions
+  come from each module's `module.json`.
+- **New data location:** settings, modules and stats live in `%LOCALAPPDATA%\GitGudGym`.
+- **Update notice:** the app tells you when a new version of itself is out.
+
+## Elden Ring v0.3.0 - unreleased
+
+- Now a module for the Git Gud Gym hub: install it from the app's Library.
+- Stats and the log move to `%LOCALAPPDATA%\GitGudGym\data\eldenring`.
+- Same gameplay as v0.2.0.
 
 ## Elden Ring v0.2.0 - 2026-11-07
 

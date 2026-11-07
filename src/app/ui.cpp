@@ -5,6 +5,8 @@
 #include <cstdio>
 #include <string>
 
+#include <shellapi.h>
+
 #include "imgui_internal.h"
 #include "version.h"
 
@@ -29,6 +31,13 @@ ImU32 U32(const ImVec4& c, float alpha = 1.0f) { return ImGui::GetColorU32(ImVec
 float g_scale = 1.0f;  // DPI scale, set by ApplyTheme
 
 float S(float v) { return v * g_scale; }
+
+std::string Narrow(const std::wstring& w) {
+    std::string s(w.size() * 3, '\0');
+    s.resize(WideCharToMultiByte(CP_UTF8, 0, w.data(), static_cast<int>(w.size()), s.data(),
+                                 static_cast<int>(s.size()), nullptr, nullptr));
+    return s;
+}
 
 std::string Thousands(long long v) {
     std::string s = std::to_string(v < 0 ? -v : v);
@@ -225,7 +234,7 @@ void TitleBar(App& app) {
     ImGui::PopFont();
     ImGui::PushFont(app.fonts.note);
     dl->AddText(ImVec2(x + brandW + S(12), (h - ImGui::GetFontSize()) * 0.5f + S(1)), U32(kMuted),
-                "boss training  \u00B7  v" GGG_VERSION);
+                "boss training  \u00B7  v" GGG_V_STRING);
     ImGui::PopFont();
 
     // Window buttons
@@ -250,156 +259,356 @@ void TitleBar(App& app) {
     if (button("##close", w - bw, true)) PostMessageW(app.window, WM_CLOSE, 0, 0);
 }
 
-void GameCard(App& app) {
-    ImGui::PushStyleColor(ImGuiCol_ChildBg, kPanel);
-    ImGui::PushStyleColor(ImGuiCol_Border, kBorder);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(S(16), S(16)));
-    ImGui::BeginChild("game", ImVec2(0, 0), ImGuiChildFlags_Borders | ImGuiChildFlags_AlwaysUseWindowPadding |
-                                               ImGuiChildFlags_AutoResizeY);
-    ImGui::PopStyleVar();
-    ImGui::PopStyleColor(2);
-
-    ImGui::PushFont(app.fonts.heading);
-    ImGui::TextUnformatted("ELDEN RING");
-    ImGui::PopFont();
-
-    struct View {
-        const char* status;
-        ImVec4 color;
-        const char* detail;
-        const char* button;
-        bool primary;
-    };
-    View v{};
-    switch (app.conn) {
-        case Conn::NoGame:
-            v = app.gameFound
-                    ? View{"Not running", kMuted, "Launch the game here or start it yourself; the mod attaches automatically.",
-                           "Launch game", true}
-                    : View{"Game not found", kAmber, "Point Git Gud Gym at eldenring.exe to launch from here.",
-                           "Locate game", true};
-            break;
-        case Conn::GameStarting:
-            v = {"Game starting", kAmber, "Waiting for the game to finish loading...", nullptr, false};
-            break;
-        case Conn::Attaching:
-            v = {"Attaching", kAmber, "Loading the mod into the game...", nullptr, false};
-            break;
-        case Conn::Connected:
-            v = {"Active", kGreen, "Mods are live. Closing this app turns them off.", "Unload mod", false};
-            break;
-        case Conn::Detached:
-            v = {"Unloaded", kMuted, "The game is running without the mod.", "Attach mod", true};
-            break;
-        case Conn::NeedsAdmin:
-            v = {"Needs admin", kAmber,
-                 "The game runs as administrator, so this app must too. (Or untick \"Run as administrator\" in "
-                 "eldenring.exe's compatibility settings.)",
-                 "Restart as admin", true};
-            break;
-        case Conn::AntiCheat:
-            v = {"Anti-cheat running", kRed,
-                 "Easy Anti-Cheat is active, so the mod won't attach. Restart the game offline without "
-                 "anti-cheat (see the README).",
-                 nullptr, false};
-            break;
-        case Conn::Error:
-            v = {"Couldn't attach", kRed, app.connDetail.c_str(), "Retry", true};
-            break;
-    }
-
+void Chip(const char* text, const ImVec4& color, ImVec2 at) {
     ImDrawList* dl = ImGui::GetWindowDrawList();
-    const ImVec2 p = ImGui::GetCursorScreenPos();
-    const float pulse = app.conn == Conn::Connected ? 0.6f + 0.4f * std::sin(static_cast<float>(ImGui::GetTime()) * 3) : 1;
-    dl->AddCircleFilled(ImVec2(p.x + S(5), p.y + ImGui::GetFontSize() * 0.5f + S(1)), S(4.5f), U32(v.color, pulse));
-    ImGui::SetCursorScreenPos(ImVec2(p.x + S(16), p.y));
-    ImGui::PushFont(app.fonts.semibold);
-    ImGui::PushStyleColor(ImGuiCol_Text, v.color);
-    ImGui::TextUnformatted(v.status);
-    ImGui::PopStyleColor();
-    ImGui::PopFont();
-
-    ImGui::PushFont(app.fonts.note);
-    ImGui::PushStyleColor(ImGuiCol_Text, kMuted);
-    ImGui::PushTextWrapPos(0);
-    ImGui::TextUnformatted(v.detail);
-    ImGui::PopTextWrapPos();
-    ImGui::PopStyleColor();
-    ImGui::PopFont();
-
-    if (!app.gameVersion.empty() && app.conn != Conn::NoGame) {
-        const std::string line = "Game " + app.gameVersion +
-                                 (app.gameVersionTested ? "  \u00B7  tested" : "  \u00B7  untested version, see README");
-        SmallLabel(app, line.c_str(), app.gameVersionTested ? kMuted : kAmber);
-    }
-
-    if (v.button) {
-        ImGui::Dummy(ImVec2(0, S(4)));
-        if (Button(v.button, v.primary, -FLT_MIN)) app.PrimaryAction();
-    }
-    ImGui::EndChild();
+    const ImVec2 sz = ImGui::CalcTextSize(text);
+    const ImVec2 pad(S(8), S(3));
+    dl->AddRectFilled(at, ImVec2(at.x + sz.x + pad.x * 2, at.y + sz.y + pad.y * 2), U32(color, 0.16f), S(20));
+    dl->AddRect(at, ImVec2(at.x + sz.x + pad.x * 2, at.y + sz.y + pad.y * 2), U32(color, 0.55f), S(20));
+    dl->AddText(ImVec2(at.x + pad.x, at.y + pad.y), U32(color), text);
 }
 
-// Where eldenring.exe is, with ways to change it.
-void GameLocation(App& app) {
-    SmallLabel(app, "GAME LOCATION");
-    ImGui::PushFont(app.fonts.note);
-    ImGui::PushTextWrapPos(0);
-    if (app.gameFound) {
-        // The interesting part is the folder; show it without the exe name.
-        const std::string folder = app.gamePath.parent_path().string();
-        ImGui::TextUnformatted(folder.c_str());
-        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", app.gamePath.string().c_str());
-    } else {
-        ImGui::PushStyleColor(ImGuiCol_Text, kAmber);
-        ImGui::TextUnformatted("Not set");
-        ImGui::PopStyleColor();
-    }
-    if (!app.locateMessage.empty()) {
-        ImGui::PushStyleColor(ImGuiCol_Text, kMuted);
-        ImGui::TextUnformatted(app.locateMessage.c_str());
-        ImGui::PopStyleColor();
-    }
-    ImGui::PopTextWrapPos();
-    ImGui::PopFont();
+float ChipWidth(const char* text) { return ImGui::CalcTextSize(text).x + S(16); }
 
-    const float half = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) / 2;
-    if (Button("Browse...", false, half)) app.BrowseForGame();
-    ImGui::SameLine();
-    if (Button("Auto-detect", false, half)) app.DetectGame();
+struct ConnView {
+    const char* status;
+    ImVec4 color;
+    std::string detail;
+    const char* button;
+    bool primary;
+};
+
+ConnView Describe(const App& app) {
+    const InstalledModule* m = app.Active();
+    const std::string exe = m ? Narrow(m->manifest.exe) : "the game";
+    switch (app.conn) {
+        case Conn::NoGame:
+            return app.gameFound
+                       ? ConnView{"Not running", kMuted, "Launch the game here or start it yourself; the mod attaches automatically.",
+                                  "Launch game", true}
+                       : ConnView{"Game not found", kAmber, "Point Git Gud Gym at " + exe + " to launch from here.",
+                                  "Locate game", true};
+        case Conn::GameStarting:
+            return {"Game starting", kAmber, "Waiting for the game to finish loading...", nullptr, false};
+        case Conn::Attaching:
+            return {"Attaching", kAmber, "Loading the mod into the game...", nullptr, false};
+        case Conn::Connected:
+            return {"Active", kGreen, "Mods are live. Closing this app turns them off.", "Unload mod", false};
+        case Conn::Detached:
+            return {"Unloaded", kMuted, "The game is running without the mod.", "Attach mod", true};
+        case Conn::NeedsAdmin:
+            return {"Needs admin", kAmber, "The game runs as administrator, so this app must too.", "Restart as admin", true};
+        case Conn::AntiCheat:
+            return {"Anti-cheat running", kRed,
+                    "Anti-cheat is active, so the mod won't attach. Restart the game offline with Launch game.", nullptr,
+                    false};
+        case Conn::Error:
+            return {"Couldn't attach", kRed, app.connDetail, "Retry", true};
+    }
+    return {};
+}
+
+// Top of the game page: which game, whether the mod is live, and where the game is installed.
+void GameHeader(App& app) {
+    const InstalledModule* m = app.Active();
+    if (!m) return;
+    const ConnView v = Describe(app);
+
+    BeginCard("header", nullptr, app);
+    if (ImGui::BeginTable("hdr", 2, ImGuiTableFlags_None)) {
+        ImGui::TableSetupColumn("info", ImGuiTableColumnFlags_WidthStretch);
+        ImGui::TableSetupColumn("actions", ImGuiTableColumnFlags_WidthFixed, S(330));
+        ImGui::TableNextColumn();
+
+        ImGui::PushFont(app.fonts.title);
+        ImGui::TextUnformatted(m->manifest.name.c_str());
+        ImGui::PopFont();
+        ImGui::SameLine();
+        ImGui::PushFont(app.fonts.note);
+        const std::string version = (m->dev ? "dev build v" : "module v") + m->manifest.version;
+        const ImVec2 at = ImGui::GetCursorScreenPos();
+        Chip(version.c_str(), m->dev ? kAmber : kGold, ImVec2(at.x + S(4), at.y + S(10)));
+        ImGui::PopFont();
+        ImGui::NewLine();
+
+        ImDrawList* dl = ImGui::GetWindowDrawList();
+        const ImVec2 p = ImGui::GetCursorScreenPos();
+        const float pulse = app.conn == Conn::Connected ? 0.6f + 0.4f * std::sin(static_cast<float>(ImGui::GetTime()) * 3) : 1;
+        dl->AddCircleFilled(ImVec2(p.x + S(5), p.y + ImGui::GetFontSize() * 0.5f + S(1)), S(4.5f), U32(v.color, pulse));
+        ImGui::SetCursorScreenPos(ImVec2(p.x + S(16), p.y));
+        ImGui::PushFont(app.fonts.semibold);
+        ImGui::PushStyleColor(ImGuiCol_Text, v.color);
+        ImGui::TextUnformatted(v.status);
+        ImGui::PopStyleColor();
+        ImGui::PopFont();
+        if (!app.gameVersion.empty() && app.conn != Conn::NoGame) {
+            ImGui::SameLine();
+            const std::string line = "·  game " + app.gameVersion +
+                                     (app.gameVersionTested ? " (tested)" : " (untested version, see the docs)");
+            SmallLabel(app, line.c_str(), app.gameVersionTested ? kMuted : kAmber);
+        }
+        ImGui::PushTextWrapPos(0);
+        SmallLabel(app, v.detail.c_str());
+        ImGui::PopTextWrapPos();
+
+        ImGui::TableNextColumn();
+        if (v.button) {
+            if (Button(v.button, v.primary, -FLT_MIN)) app.PrimaryAction();
+        } else {
+            Button(app.conn == Conn::AntiCheat ? "Blocked" : "Working...", false, -FLT_MIN, false);
+        }
+        ImGui::PushFont(app.fonts.note);
+        ImGui::PushStyleColor(ImGuiCol_Text, app.gameFound ? kMuted : kAmber);
+        const std::string where = app.gameFound ? app.gamePath.parent_path().string() : "Game location not set";
+        ImGui::TextUnformatted(where.c_str());
+        if (app.gameFound && ImGui::IsItemHovered()) ImGui::SetTooltip("%s", app.gamePath.string().c_str());
+        ImGui::PopStyleColor();
+        if (!app.locateMessage.empty()) SmallLabel(app, app.locateMessage.c_str());
+        ImGui::PopFont();
+        const float half = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) / 2;
+        if (Button("Browse...", false, half)) app.BrowseForGame();
+        ImGui::SameLine();
+        if (Button("Auto-detect", false, half)) app.DetectGame();
+        ImGui::EndTable();
+    }
+    EndCard();
+}
+
+bool NavItem(App& app, const char* id, const char* label, bool selected, const ImVec4* dot, const char* chip) {
+    const float w = ImGui::GetContentRegionAvail().x, h = S(40);
+    const ImVec2 p = ImGui::GetCursorScreenPos();
+    const bool clicked = ImGui::InvisibleButton(id, ImVec2(w, h));
+    const bool hovered = ImGui::IsItemHovered();
+    if (hovered) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+    ImDrawList* dl = ImGui::GetWindowDrawList();
+    if (selected || hovered) dl->AddRectFilled(p, ImVec2(p.x + w, p.y + h), U32(selected ? kPanelHi : kPanel), S(8));
+    if (selected) dl->AddRectFilled(ImVec2(p.x, p.y + S(10)), ImVec2(p.x + S(3), p.y + h - S(10)), U32(kGold), S(2));
+
+    ImGui::PushFont(app.fonts.semibold);
+    const float ty = p.y + (h - ImGui::GetFontSize()) * 0.5f;
+    dl->AddText(ImVec2(p.x + S(14), ty), U32(selected ? kText : ImLerp(kMuted, kText, hovered ? 0.6f : 0.25f)), label);
+    ImGui::PopFont();
+    float right = p.x + w - S(12);
+    if (dot) {
+        const float pulse = 0.6f + 0.4f * std::sin(static_cast<float>(ImGui::GetTime()) * 3);
+        dl->AddCircleFilled(ImVec2(right - S(4), p.y + h * 0.5f), S(4), U32(*dot, pulse));
+        right -= S(16);
+    }
+    if (chip) {
+        ImGui::PushFont(app.fonts.note);
+        const float cw = ChipWidth(chip);
+        Chip(chip, kAmber, ImVec2(right - cw, p.y + (h - ImGui::GetFontSize()) * 0.5f - S(3)));
+        ImGui::PopFont();
+    }
+    return clicked;
 }
 
 void Sidebar(App& app) {
     ImGui::PushStyleColor(ImGuiCol_ChildBg, kSidebar);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(S(18), S(18)));
-    ImGui::BeginChild("sidebar", ImVec2(S(270), 0), ImGuiChildFlags_AlwaysUseWindowPadding);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(S(14), S(18)));
+    ImGui::BeginChild("sidebar", ImVec2(S(240), 0), ImGuiChildFlags_AlwaysUseWindowPadding);
     ImGui::PopStyleVar();
     ImGui::PopStyleColor();
 
-    SmallLabel(app, "GAME");
-    GameCard(app);
-
-    ImGui::Dummy(ImVec2(0, S(10)));
-    GameLocation(app);
-
-    ImGui::Dummy(ImVec2(0, S(10)));
-    SmallLabel(app, "HOTKEYS (IN GAME)");
-    ImGui::Dummy(ImVec2(0, S(2)));
-    const char* keys[][2] = {{"F5", "Immortality on / off"}, {"F6", "Next boss"},     {"F7", "Let boss die once"},
-                             {"F8", "Probe (writes log)"},   {"F9", "New session"},   {"F10", "Unload mod"}};
-    for (const auto& k : keys) {
-        ImGui::PushFont(app.fonts.note);
-        KeyChip(k[0]);
-        ImGui::PopFont();
-        ImGui::SameLine(S(62));
-        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + S(2));
-        ImGui::TextUnformatted(k[1]);
+    if (NavItem(app, "##library", "Library", app.page == Page::Library, nullptr, nullptr)) app.OpenLibrary();
+    ImGui::Dummy(ImVec2(0, S(8)));
+    SmallLabel(app, "  YOUR GAMES");
+    if (app.installed.empty()) {
+        ImGui::PushTextWrapPos(0);
+        SmallLabel(app, "  Nothing installed yet. Add a game from the library.");
+        ImGui::PopTextWrapPos();
+    }
+    const InstalledModule* active = app.Active();
+    for (const InstalledModule& m : app.installed) {
+        const bool isActive = active == &m;
+        const ImVec4* dot = isActive && app.connected ? &kGreen : nullptr;
+        const std::string id = "##game_" + m.manifest.id;
+        if (NavItem(app, id.c_str(), m.manifest.name.c_str(), app.page == Page::Game && isActive, dot,
+                    m.dev ? "dev" : nullptr)) {
+            app.OpenGame(m.manifest.id);
+        }
     }
 
-    const float bottom = ImGui::GetWindowHeight() - S(18) - S(38) * 2 - ImGui::GetStyle().ItemSpacing.y;
+    // Bottom: app update notice and version.
+    const bool update = app.AppUpdateAvailable();
+    const float bottom = ImGui::GetWindowHeight() - S(18) - ImGui::GetFontSize() - (update ? S(96) : 0);
     if (ImGui::GetCursorPosY() < bottom) ImGui::SetCursorPosY(bottom);
-    if (Button("Open stats folder", false, -FLT_MIN)) app.OpenStatsFolder();
-    if (Button("Open log", false, -FLT_MIN)) app.OpenLog();
+    if (update) {
+        const std::string text = "Git Gud Gym " + app.catalog->appVersion + " is out";
+        SmallLabel(app, text.c_str(), kGold);
+        if (Button("Download update", true, -FLT_MIN)) {
+            ShellExecuteA(nullptr, "open", app.AppUpdateUrl().c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+        }
+        ImGui::Dummy(ImVec2(0, S(4)));
+    }
+    SmallLabel(app, "Git Gud Gym v" GGG_V_STRING);
+    ImGui::EndChild();
+}
+
+// Procedural cover art: our own look, no publisher artwork.
+void CoverArt(App& app, const std::string& id, const std::string& name, ImVec2 p, ImVec2 size, bool dim) {
+    ImDrawList* dl = ImGui::GetWindowDrawList();
+    unsigned h = 2166136261u;
+    for (char c : id) h = (h ^ static_cast<unsigned char>(c)) * 16777619u;
+    // A slightly different warm tint per game, always within the gold palette.
+    const float tint = (h % 100) / 100.0f;
+    const ImVec4 a = ImLerp(ImVec4(0.10f, 0.08f, 0.05f, 1), ImVec4(0.12f, 0.06f, 0.06f, 1), tint);
+    const ImVec4 b = ImVec4(0.05f, 0.055f, 0.075f, 1);
+    const ImVec2 q(p.x + size.x, p.y + size.y);
+    dl->PushClipRect(p, q, true);
+    dl->AddRectFilledMultiColor(p, q, U32(a), U32(b), U32(b), U32(a));
+    // Diagonal hairlines.
+    for (float x = p.x - size.y; x < q.x; x += S(14)) {
+        dl->AddLine(ImVec2(x, q.y), ImVec2(x + size.y, p.y), U32(kGold, 0.05f), S(1));
+    }
+    if (app.logo) {
+        const float s = size.y * 1.3f;
+        dl->AddImage(app.logo, ImVec2(q.x - s * 0.8f, p.y - s * 0.15f), ImVec2(q.x - s * 0.8f + s, p.y + s * 0.85f),
+                     ImVec2(0, 0), ImVec2(1, 1), U32(ImVec4(1, 1, 1, 0.10f)));
+    }
+    dl->AddRectFilledMultiColor(ImVec2(p.x, q.y - size.y * 0.6f), q, U32(kBg, 0), U32(kBg, 0), U32(kBg, 0.85f),
+                                U32(kBg, 0.85f));
+    ImGui::PushFont(app.fonts.title);
+    std::string upper = name;
+    for (char& c : upper) c = static_cast<char>(toupper(static_cast<unsigned char>(c)));
+    dl->AddText(ImVec2(p.x + S(18), q.y - ImGui::GetFontSize() - S(14)), U32(dim ? kMuted : kText), upper.c_str());
+    ImGui::PopFont();
+    dl->PopClipRect();
+}
+
+void GameTile(App& app, const LibraryEntry& e, float width) {
+    const float height = S(290), art = S(140);
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, kPanel);
+    ImGui::PushStyleColor(ImGuiCol_Border, kBorder);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+    const std::string id = "tile_" + e.id;
+    ImGui::BeginChild(id.c_str(), ImVec2(width, height), ImGuiChildFlags_Borders, ImGuiWindowFlags_NoScrollbar);
+    ImGui::PopStyleVar();
+    ImGui::PopStyleColor(2);
+
+    const ImVec2 p = ImGui::GetCursorScreenPos();
+    CoverArt(app, e.id, e.name, p, ImVec2(width, art), e.planned);
+
+    // Status chip in the corner.
+    ImGui::PushFont(app.fonts.note);
+    std::string chip;
+    ImVec4 chipColor = kMuted;
+    if (e.installed && e.installed->dev) {
+        chip = "Dev build", chipColor = kAmber;
+    } else if (e.updateAvailable) {
+        chip = "Update " + e.published->version, chipColor = kGold;
+    } else if (e.installed) {
+        chip = "Installed", chipColor = kGreen;
+    } else if (e.planned) {
+        chip = "Planned";
+    } else if (e.published) {
+        chip = "v" + e.published->version, chipColor = kGold;
+    } else {
+        chip = "Coming soon";
+    }
+    Chip(chip.c_str(), chipColor, ImVec2(p.x + width - ChipWidth(chip.c_str()) - S(12), p.y + S(12)));
+    ImGui::PopFont();
+
+    ImGui::SetCursorScreenPos(ImVec2(p.x + S(18), p.y + art + S(14)));
+    ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + width - S(36));
+    SmallLabel(app, e.tagline.c_str());
+    ImGui::PopTextWrapPos();
+
+    // Actions pinned to the bottom of the tile.
+    ImGui::SetCursorScreenPos(ImVec2(p.x + S(18), p.y + height - S(38) - S(18)));
+    const float full = width - S(36);
+    ImGui::PushID(e.id.c_str());
+    if (app.Installing(e.id)) {
+        char text[48];
+        std::snprintf(text, sizeof(text), "Downloading... %.0f%%", app.installProgress * 100);
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX());
+        ImGui::BeginGroup();
+        ImGui::PushItemWidth(full);
+        ImGui::PushStyleColor(ImGuiCol_PlotHistogram, kGold);
+        ImGui::ProgressBar(app.installProgress, ImVec2(full, S(38)), text);
+        ImGui::PopStyleColor();
+        ImGui::PopItemWidth();
+        ImGui::EndGroup();
+    } else if (e.installed) {
+        const float gap = ImGui::GetStyle().ItemSpacing.x;
+        const float side = e.updateAvailable ? (full - gap * 2) / 3 : (full - gap) / 2;
+        if (Button("Open", true, e.updateAvailable ? side : full - side - gap)) app.OpenGame(e.id);
+        if (e.updateAvailable) {
+            ImGui::SameLine();
+            if (Button("Update", false, side)) app.Install(e.id);
+        }
+        ImGui::SameLine();
+        if (Button("Remove", false, side)) {
+            const std::string q = "Remove the " + e.name + " module? Your stats are kept.";
+            if (MessageBoxA(app.window, q.c_str(), "Git Gud Gym", MB_YESNO | MB_ICONQUESTION) == IDYES) {
+                app.Uninstall(e.id);
+            }
+        }
+    } else if (e.published) {
+        std::string label = "Install  v" + e.published->version;
+        uint64_t bytes = 0;
+        for (const CatalogFile& f : e.published->files) bytes += f.size;
+        char size[32];
+        std::snprintf(size, sizeof(size), "  ·  %.1f MB", bytes / 1048576.0);
+        label += size;
+        if (Button(label.c_str(), true, full)) app.Install(e.id);
+    } else if (e.planned && app.catalog && !app.catalog->repo.empty()) {
+        if (Button("Request this game", false, full)) {
+            const std::string url = "https://github.com/" + app.catalog->repo + "/issues/new/choose";
+            ShellExecuteA(nullptr, "open", url.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+        }
+    }
+    ImGui::PopID();
+    ImGui::EndChild();
+}
+
+void LibraryPage(App& app) {
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(S(28), S(24)));
+    ImGui::BeginChild("library", ImVec2(0, 0), ImGuiChildFlags_AlwaysUseWindowPadding);
+    ImGui::PopStyleVar();
+
+    ImGui::PushFont(app.fonts.title);
+    ImGui::TextUnformatted("Library");
+    ImGui::PopFont();
+    SmallLabel(app, "Add the games you play. Each game is a small module that installs and updates on its own.");
+
+    // Catalog status + refresh, right-aligned on the title row.
+    const float refreshW = S(110);
+    const ImVec2 back = ImGui::GetCursorPos();
+    ImGui::SetCursorPos(ImVec2(ImGui::GetWindowWidth() - S(28) - refreshW, S(24)));
+    if (Button(app.CatalogLoading() ? "Checking..." : "Refresh", false, refreshW, !app.CatalogLoading())) {
+        app.RefreshCatalog();
+    }
+    if (!app.catalogStatus.empty()) {
+        ImGui::PushFont(app.fonts.note);
+        const float w = ImGui::CalcTextSize(app.catalogStatus.c_str()).x;
+        ImGui::SetCursorPos(ImVec2(ImGui::GetWindowWidth() - S(28) - refreshW - w - S(14), S(36)));
+        ImGui::PopFont();
+        SmallLabel(app, app.catalogStatus.c_str());
+        if (!app.catalogError.empty() && ImGui::IsItemHovered()) ImGui::SetTooltip("%s", app.catalogError.c_str());
+    }
+    ImGui::SetCursorPos(back);
+    ImGui::Dummy(ImVec2(0, S(6)));
+    if (!app.libraryMessage.empty()) {
+        SmallLabel(app, app.libraryMessage.c_str(), kGold);
+        ImGui::Dummy(ImVec2(0, S(2)));
+    }
+
+    const std::vector<LibraryEntry> entries = app.Library();
+    if (entries.empty()) {
+        SmallLabel(app, app.CatalogLoading() ? "Loading the game library..."
+                                             : "The game library couldn't be loaded. Check your connection and Refresh.");
+    }
+    const float gap = S(18);
+    const float avail = ImGui::GetContentRegionAvail().x;
+    const int cols = std::max(1, static_cast<int>((avail + gap) / (S(300) + gap)));
+    const float width = (avail - gap * (cols - 1)) / cols;
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(gap, gap));
+    for (size_t i = 0; i < entries.size(); ++i) {
+        if (i % cols) ImGui::SameLine();
+        GameTile(app, entries[i], width);
+    }
+    ImGui::PopStyleVar();
     ImGui::EndChild();
 }
 
@@ -484,6 +693,10 @@ void SessionCard(App& app) {
     if (Button("New session  (F9)", false, 0, app.connected)) app.SendCommand(ggg::Command::NewSession);
     ImGui::SameLine();
     if (Button("Probe  (F8)", false, 0, app.connected)) app.SendCommand(ggg::Command::Probe);
+    ImGui::SameLine();
+    if (Button("Stats folder", false)) app.OpenDataFolder();
+    ImGui::SameLine();
+    if (Button("Log", false)) app.OpenLog();
     EndCard();
 }
 
@@ -560,10 +773,12 @@ void OverlayCard(App& app) {
     EndCard();
 }
 
-void Main(App& app) {
+void GamePage(App& app) {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(S(24), S(20)));
     ImGui::BeginChild("main", ImVec2(0, 0), ImGuiChildFlags_AlwaysUseWindowPadding);
     ImGui::PopStyleVar();
+
+    GameHeader(app);
 
     const ggg::Status& s = app.status;
     const float gap = ImGui::GetStyle().ItemSpacing.x;
@@ -654,7 +869,11 @@ void DrawUi(App& app) {
     Sidebar(app);
     ImGui::SameLine();
     ImGui::PopStyleVar();
-    Main(app);
+    if (app.page == Page::Game && app.Active()) {
+        GamePage(app);
+    } else {
+        LibraryPage(app);
+    }
 
     ImGui::End();
 }
