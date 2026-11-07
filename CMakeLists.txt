@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 # Git Gud Gym launcher. Released as v<version> (see CHANGELOG.md).
-project(GitGudGym VERSION 0.3.0 LANGUAGES CXX RC)
+project(GitGudGym VERSION 0.3.1 LANGUAGES CXX RC)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

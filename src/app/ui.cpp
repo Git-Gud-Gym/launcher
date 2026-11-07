@@ -701,8 +701,8 @@ void SessionCard(App& app) {
 }
 
 void ActivityCard(App& app) {
-    // Fill whatever is left of the column so it never needs to scroll.
-    BeginCard("activity", "Activity", app, std::max(ImGui::GetContentRegionAvail().y - S(6), S(90)));
+    // Fixed height; the feed scrolls inside the card.
+    BeginCard("activity", "Activity", app, S(240));
     if (app.feed.empty()) SmallLabel(app, "Deaths, defeats and boss changes show up here.");
     for (const FeedItem& f : app.feed) {
         ImVec4 dot = kMuted;
@@ -798,14 +798,16 @@ void GamePage(App& app) {
              "lowest the boss has been", tileW);
     ImGui::Dummy(ImVec2(0, S(4)));
 
+    // Columns size to their content and the whole page scrolls, so nothing is clipped at high DPI scaling.
     const float leftW = (ImGui::GetContentRegionAvail().x - gap) * 0.56f;
-    ImGui::BeginChild("left", ImVec2(leftW, 0), 0, ImGuiWindowFlags_NoScrollbar);
+    const ImGuiChildFlags column = ImGuiChildFlags_AutoResizeY;
+    ImGui::BeginChild("left", ImVec2(leftW, 0), column, ImGuiWindowFlags_NoScrollbar);
     LiveCard(app);
     SessionCard(app);
     ActivityCard(app);
     ImGui::EndChild();
     ImGui::SameLine();
-    ImGui::BeginChild("right", ImVec2(0, 0));
+    ImGui::BeginChild("right", ImVec2(0, 0), column, ImGuiWindowFlags_NoScrollbar);
     ModsCard(app);
     OverlayCard(app);
     ImGui::EndChild();

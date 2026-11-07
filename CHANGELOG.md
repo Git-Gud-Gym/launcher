@@ -3,6 +3,11 @@
 Releases of the Git Gud Gym launcher, tagged `vX.Y.Z`. Each game module has its own changelog in its
 `module-<game>` repository.
 
+## v0.3.1 - 2026-11-07
+
+- **Game page scrolls instead of clipping:** at high Windows display scaling (e.g. 150%) the bottom cards were
+  cut off. The page now scrolls as a whole, and the activity feed has a fixed height with its own scrollbar.
+
 ## v0.3.0 - 2026-11-07
 
 First release of Git Gud Gym as a hub: install it once, then add the games you play.
