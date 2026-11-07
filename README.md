@@ -7,7 +7,7 @@
 **Endless boss practice for souls-likes.** Neither you nor the boss can die. You keep fighting,
 learn the moveset, and every attempt is logged so you can watch yourself improve.
 
-[![Elden Ring release](https://img.shields.io/github/v/release/ryyanrashid01/git-gud-gym?filter=eldenring-*&label=Elden%20Ring&color=d4a84b&style=for-the-badge)](https://github.com/ryyanrashid01/git-gud-gym/releases/latest)
+[![Elden Ring release](https://img.shields.io/github/v/release/ryyanrashid01/git-gud-gym?filter=Elden%20Ring*&display_name=release&label=latest&color=d4a84b&style=for-the-badge)](https://github.com/ryyanrashid01/git-gud-gym/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/ryyanrashid01/git-gud-gym/total?color=d4a84b&style=for-the-badge)](https://github.com/ryyanrashid01/git-gud-gym/releases)
 [![Build](https://img.shields.io/github/actions/workflow/status/ryyanrashid01/git-gud-gym/build.yml?branch=main&style=for-the-badge)](https://github.com/ryyanrashid01/git-gud-gym/actions/workflows/build.yml)
 
