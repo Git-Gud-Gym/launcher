@@ -178,6 +178,8 @@ GitHub Actions builds, packages and publishes the release, using the changelog s
 - Notification sound: "Gaming lock" from [Mixkit](https://mixkit.co/free-sound-effects/), under the Mixkit Sound Effects Free License
 - Fonts: Segoe UI and Bahnschrift, loaded from Windows
 
+Claude (Anthropic) was used as a development assistant throughout this project, helping with implementation, debugging, and technical research.
+
 ## License
 
 [MIT](LICENSE). Git Gud Gym is a fan-made tool and isn't affiliated with or endorsed by FromSoftware or
