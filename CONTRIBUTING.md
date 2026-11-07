@@ -1,75 +1,57 @@
-# Contributing to Git Gud Gym
+# Contributing to the launcher
 
-Thanks for helping. Whether you want to report a bug, support a new game, polish the app or
-improve the website, this page gets you started.
+Start with the organization-wide
+**[contributing guide](https://github.com/Git-Gud-Gym/.github/blob/main/CONTRIBUTING.md)**: where
+to report what, PR rules and ground rules. This page covers working on the launcher itself.
 
-## Ways to help
+> Want to add a game? That happens in its own module repo. See the SDK's
+> [Adding a game](https://github.com/Git-Gud-Gym/sdk/blob/main/docs/ADDING_A_GAME.md) guide.
 
-- **Report a bug.** Use the [bug report form](../../issues/new?template=bug_report.yml). Press
-  <kbd>F8</kbd> in game first and attach `gitgudgym.log` (*Log* button on the game page).
-- **Request a game.** Use the [game request form](../../issues/new?template=game_request.yml).
-  Upvote existing requests with 👍.
-- **Test a game patch.** Tell us if a module works on a game version we haven't tested. The app shows
-  "untested version" in that case.
-- **Add a game.** See [docs/ADDING_A_GAME.md](docs/ADDING_A_GAME.md). This is the most valuable
-  contribution.
-- **Improve the app or the website.** Pick an issue labelled `good first issue` or `help wanted`.
-
-## Project layout
+## Layout
 
 ```
-src/app/              Git Gud Gym hub: library, downloads, dashboard, overlay (C++20, Dear ImGui, D3D11)
-src/core/             Shared trainer: immortality, falls, boss tracking, stats (compiled into every module)
-src/games/<id>/       One folder per game: adapter + module.json + default ini
-src/common/           The app <-> module shared-memory contract, paths, version info
-site/                 Website and docs (React + Vite + Tailwind), deployed to GitHub Pages
-scripts/              Packaging and catalog generation
-catalog/planned.json  Games we intend to support
+src/app/            the launcher (C++20, Dear ImGui, Direct3D 11)
+  app.*             state: library, installs, attaching, events, settings
+  ui.*              every screen and widget
+  catalog.* http.*  the registry's catalog.json, downloads, SHA-256
+  modules.*         installed modules and their module.json
+  locator.*         finding game installs (Steam libraries, common folders, file picker)
+  injector.*        loading a module into the game process
+  overlay.*         toasts and mini HUD over the game (GDI+ layered windows)
+third_party/        Dear ImGui, nlohmann/json (vendored)
+docs/               architecture notes and README images
 ```
 
-[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) explains how the pieces fit together.
+The shared-memory contract the launcher and modules talk through comes from the
+[SDK](https://github.com/Git-Gud-Gym/sdk) (`include/shared_state.h`).
 
 ## Building
 
-Requirements: Windows 10/11 and Visual Studio 2022 (or Build Tools) with the C++ workload.
-
 ```bat
-build.bat
+build.bat                                                  :: fetches the pinned SDK release
+build.bat -DFETCHCONTENT_SOURCE_DIR_GGG_SDK=..\sdk         :: or a local SDK checkout
+build.bat -DGGG_REQUIRE_ADMIN=OFF                          :: no UAC prompt, for UI work
 ```
 
-This produces `bin\GitGudGym.exe` and `bin\modules\<id>\`. The app treats `bin\modules` as a
-**development install**: modules there show a "dev" badge and take priority over downloaded copies.
-So rebuild, then restart the app.
+## Testing with a module you're building
 
-The app requires administrator rights. For UI work without UAC prompts, configure with
-`-DGGG_REQUIRE_ADMIN=OFF`.
+Set `GGG_DEV_MODULES` to the module's `bin` folder (several folders can be separated with `;`)
+before starting the launcher. The module shows up with a **dev** badge and takes priority over a
+downloaded copy:
 
-Website: `cd site && npm ci && npm run dev`. See [site/README.md](site/README.md).
+```bat
+set GGG_DEV_MODULES=C:\src\module-eldenring\bin
+bin\GitGudGym.exe
+```
 
-## Pull requests
+`GitGudGym.exe --install <id>` installs a module from the catalog on startup, which is handy for
+testing the download path.
 
-1. Fork, then branch from `main`.
-2. Keep each PR focused: one feature or fix.
-3. Match the surrounding style. C++ is formatted with the repo's [.clang-format](.clang-format).
-4. CI must pass, and new warnings at `/W4` count as failures.
-5. For gameplay changes, say which game, which patch, and what you tested in game.
-6. Add a line to the right section of [CHANGELOG.md](CHANGELOG.md).
+## Releasing
 
-## Releases
+1. Bump `project(GitGudGym VERSION x.y.z)` in `CMakeLists.txt`.
+2. Add a `## vx.y.z` section to `CHANGELOG.md`.
+3. Push the tag `vx.y.z`.
 
-Maintainers release the hub and each game module separately:
-
-| Tag | Releases | Version lives in |
-|---|---|---|
-| `app-vX.Y.Z` | `GitGudGym.exe` | `project(... VERSION)` in `CMakeLists.txt` |
-| `<id>-vX.Y.Z` | one game module | `src/games/<id>/module.json` |
-
-Pushing the tag builds, packages and publishes the release, then refreshes the website's game
-library (`catalog.json`), which the app reads.
-
-## Ground rules
-
-- **Offline and single-player only.** We never help bypass anti-cheat for online play. Modules must
-  list the game's anti-cheat processes so the app refuses to attach while they run.
-- **No publisher assets.** No game art, logos or files from the games in this repo or on the website.
-- **Be kind.** See the [Code of Conduct](CODE_OF_CONDUCT.md).
+The release workflow builds, packages and publishes the release. The registry's catalog picks up
+the new version, and running copies of the app show an update notice.

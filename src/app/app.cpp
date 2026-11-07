@@ -22,7 +22,7 @@ using namespace std::chrono_literals;
 namespace {
 
 // The game library, published with the website. Overridable with [app] catalog_url in settings.ini.
-constexpr const wchar_t* kDefaultCatalogUrl = L"https://git-gud-gym.github.io/git-gud-gym/catalog.json";
+constexpr const wchar_t* kDefaultCatalogUrl = L"https://git-gud-gym.github.io/registry/catalog.json";
 constexpr double kGameWarmupSec = 20;  // let the game finish unpacking before injecting
 
 std::wstring Widen(const std::string& s) {

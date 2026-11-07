@@ -1,5 +1,11 @@
 blank_issues_enabled: false
 contact_links:
+  - name: Request a game
+    url: https://github.com/Git-Gud-Gym/registry/issues/new?template=game_request.yml
+    about: Ask for a new game in the library (or 👍 an existing request).
+  - name: A bug in a specific game
+    url: https://github.com/orgs/Git-Gud-Gym/repositories?q=module-
+    about: Report it in that game's module-<game> repository.
   - name: Questions and ideas
-    url: https://github.com/Git-Gud-Gym/git-gud-gym/discussions
+    url: https://github.com/Git-Gud-Gym/launcher/discussions
     about: Ask questions and share ideas in Discussions.

@@ -1,10 +1,9 @@
 # Changelog
 
-The hub app and each game module are released separately, each with its own version:
-`app-v<version>` and `<game>-v<version>` (e.g. `eldenring-v0.3.0`). The release workflow publishes the
-matching section below ("## App v…" / "## Elden Ring v…") as the release notes.
+Releases of the Git Gud Gym launcher, tagged `vX.Y.Z`. Each game module has its own changelog in its
+`module-<game>` repository.
 
-## App v0.3.0 - 2026-11-07
+## v0.3.0 - 2026-11-07
 
 First release of Git Gud Gym as a hub: install it once, then add the games you play.
 
@@ -13,18 +12,20 @@ First release of Git Gud Gym as a hub: install it once, then add the games you p
   is installed.
 - **Game pages:** each installed game has its own page with launch, attach, live stats, toggles and
   game location.
+- **Modules in their own repos:** the game support moved to `module-<game>` repositories built on the
+  [SDK](https://github.com/Git-Gud-Gym/sdk); the library comes from the
+  [registry](https://github.com/Git-Gud-Gym/registry).
 - **Game-agnostic attach:** the exe name, anti-cheat processes, Steam location and tested versions
   come from each module's `module.json`.
 - **New data location:** settings, modules and stats live in `%LOCALAPPDATA%\GitGudGym`.
+- **`GGG_DEV_MODULES`:** point the launcher at a module's build folder to test it as a dev build.
 - **Update notice:** the app tells you when a new version of itself is out.
 
-## Elden Ring v0.3.0 - 2026-11-07
+## Earlier releases
 
-- Now a module for the Git Gud Gym hub: install it from the app's Library.
-- Stats and the log move to `%LOCALAPPDATA%\GitGudGym\data\eldenring`.
-- Same gameplay as v0.2.0.
+Before v0.3.0 this repository shipped Elden Ring as an all-in-one download, tagged `eldenring-vX.Y.Z`.
 
-## Elden Ring v0.2.0 - 2026-11-07
+### Elden Ring v0.2.0 - 2026-11-07
 
 - **Finds the game by itself:** searches every Steam library, Steam's install record, and common folders
   on every drive.
@@ -35,7 +36,7 @@ First release of Git Gud Gym as a hub: install it once, then add the games you p
   to the game even when the game runs as admin.
 - The left column no longer scrolls.
 
-## Elden Ring v0.1.0 - 2026-11-07
+### Elden Ring v0.1.0 - 2026-11-07
 
 First release. Tested on Elden Ring **1.12.0** (`eldenring.exe` 2.2.0.0).
 

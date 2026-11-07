@@ -87,6 +87,15 @@ std::vector<InstalledModule> ScanInstalledModules(const fs::path& devDir) {
     std::vector<InstalledModule> out;
     Scan(ggg::paths::ModulesDir(), false, out);
     Scan(devDir, true, out);
+    // Module developers point GGG_DEV_MODULES at their build output (e.g. module-sekiro\bin);
+    // several folders can be separated with ';'.
+    wchar_t env[4096]{};
+    if (GetEnvironmentVariableW(L"GGG_DEV_MODULES", env, static_cast<DWORD>(std::size(env)))) {
+        std::wstringstream folders(env);
+        for (std::wstring folder; std::getline(folders, folder, L';');) {
+            if (!folder.empty()) Scan(folder, true, out);
+        }
+    }
     std::sort(out.begin(), out.end(),
               [](const InstalledModule& a, const InstalledModule& b) { return a.manifest.name < b.manifest.name; });
     return out;

@@ -9,15 +9,15 @@ learn the moveset, and every attempt is logged so you can watch yourself improve
 
 Install Git Gud Gym once, then add the games you play from its library.
 
-[![Latest release](https://img.shields.io/github/v/release/Git-Gud-Gym/git-gud-gym?filter=Git%20Gud%20Gym*&display_name=release&label=download&color=d4a84b&style=for-the-badge)](https://github.com/Git-Gud-Gym/git-gud-gym/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/Git-Gud-Gym/git-gud-gym/total?color=d4a84b&style=for-the-badge)](https://github.com/Git-Gud-Gym/git-gud-gym/releases)
-[![Build](https://img.shields.io/github/actions/workflow/status/Git-Gud-Gym/git-gud-gym/build.yml?branch=main&style=for-the-badge)](https://github.com/Git-Gud-Gym/git-gud-gym/actions/workflows/build.yml)
+[![Download](https://img.shields.io/github/v/release/Git-Gud-Gym/launcher?label=download&color=d4a84b&style=for-the-badge)](https://github.com/Git-Gud-Gym/launcher/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/Git-Gud-Gym/launcher/total?color=d4a84b&style=for-the-badge)](https://github.com/Git-Gud-Gym/launcher/releases)
+[![Build](https://img.shields.io/github/actions/workflow/status/Git-Gud-Gym/launcher/build.yml?branch=main&style=for-the-badge)](https://github.com/Git-Gud-Gym/launcher/actions/workflows/build.yml)
 
-[![Website](https://img.shields.io/badge/website-docs-0c0d12?style=flat-square)](https://git-gud-gym.github.io/git-gud-gym/)
+[![Website](https://img.shields.io/badge/website-docs-0c0d12?style=flat-square)](https://git-gud-gym.github.io/)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%2F%2011-0c0d12?style=flat-square&logo=windows)
 ![C++20](https://img.shields.io/badge/C%2B%2B-20-0c0d12?style=flat-square&logo=cplusplus)
 [![License: MIT](https://img.shields.io/badge/license-MIT-0c0d12?style=flat-square)](LICENSE)
-[![PRs welcome](https://img.shields.io/badge/PRs-welcome-0c0d12?style=flat-square)](CONTRIBUTING.md)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-0c0d12?style=flat-square)](https://github.com/Git-Gud-Gym/.github/blob/main/CONTRIBUTING.md)
 
 <img src="docs/images/app.png" width="900" alt="Git Gud Gym game page during a fight">
 
@@ -27,16 +27,27 @@ Install Git Gud Gym once, then add the games you play from its library.
 
 ---
 
+This is the **launcher**: the desktop app you install. Game support lives in separate modules, which
+the launcher downloads from its library.
+
+| Repository | What it is |
+|---|---|
+| **launcher** (here) | The app: library, downloads, game pages, live stats, overlay |
+| [sdk](https://github.com/Git-Gud-Gym/sdk) | Trainer core every game module is built on |
+| [module-eldenring](https://github.com/Git-Gud-Gym/module-eldenring) | Elden Ring support |
+| [registry](https://github.com/Git-Gud-Gym/registry) | Which modules appear in the library (`catalog.json`) |
+| [git-gud-gym.github.io](https://github.com/Git-Gud-Gym/git-gud-gym.github.io) | Website and docs |
+
 ## Games
 
-| Game | Module | Tested on | Status |
-|---|---|---|---|
-| Elden Ring | `eldenring` | patch 1.12.0 | ✅ Available |
-| Sekiro: Shadows Die Twice | | | 🗓️ Planned |
-| Dark Souls III | | | 🗓️ Planned |
+| Game | Tested on | Status |
+|---|---|---|
+| Elden Ring | patch 1.12.0 | ✅ [Available](https://github.com/Git-Gud-Gym/module-eldenring) |
+| Sekiro: Shadows Die Twice | | 🗓️ Planned |
+| Dark Souls III | | 🗓️ Planned |
 
-Want another game? [Request it](https://github.com/Git-Gud-Gym/git-gud-gym/issues/new?template=game_request.yml),
-or [build the module yourself](docs/ADDING_A_GAME.md).
+Want another game? [Request it](https://github.com/Git-Gud-Gym/registry/issues/new?template=game_request.yml),
+or [build the module yourself](https://github.com/Git-Gud-Gym/sdk/blob/main/docs/ADDING_A_GAME.md).
 
 ## Features
 
@@ -54,7 +65,7 @@ or [build the module yourself](docs/ADDING_A_GAME.md).
 ## Quick start
 
 1. **Download** `GitGudGym-v*.zip` from the
-   [latest release](https://github.com/Git-Gud-Gym/git-gud-gym/releases/latest), extract it anywhere,
+   [latest release](https://github.com/Git-Gud-Gym/launcher/releases/latest), extract it anywhere,
    and run `GitGudGym.exe`. Accept the administrator prompt: the app needs it to launch the game and
    attach to it.
 2. **Install a game** from the **Library**.
@@ -68,14 +79,11 @@ or [build the module yourself](docs/ADDING_A_GAME.md).
 > Git Gud Gym is for **offline, single-player** practice. The app refuses to attach while a game's
 > anti-cheat is running. Modding a game online can get your account flagged.
 
-### Playing offline without anti-cheat (Steam)
-
-For Steam copies, **Launch game** offers to create `steam_appid.txt` in the game folder. That file
-lets the game start directly, offline, instead of relaunching through Steam with anti-cheat. To play
-online again, delete it and use Steam's Play button.
-
 > [!TIP]
 > On-screen notifications and the HUD need **Borderless** or **Windowed** display mode.
+
+Full documentation, including playing offline, stats and troubleshooting, is at
+**[git-gud-gym.github.io/docs](https://git-gud-gym.github.io/docs)**.
 
 ## Controls
 
@@ -88,63 +96,26 @@ online again, delete it and use Steam's Play button.
 | <kbd>F9</kbd> | Save the session and start a new one | *New session* |
 | <kbd>F10</kbd> | Unload the mod | *Unload mod* |
 
-## Your stats
+## Building
 
-Each game keeps its stats in `%LOCALAPPDATA%\GitGudGym\data\<game>\stats\`. Use **Stats folder** on
-the game page to open it. Open the files in Excel, Google Sheets, or anything that reads CSV.
-
-**`attempts.csv`**, one row per attempt:
-
-| Column | Meaning |
-|---|---|
-| `outcome` | `death`, `fall`, `defeat`, or `abandoned` |
-| `duration_s` | Fight length in seconds |
-| `damage_dealt` / `damage_taken` | HP removed from the boss / from you |
-| `hits_landed` / `hits_taken` | Number of hits |
-| `healing` | HP you healed during the attempt |
-| `boss_lowest_hp_pct` | How close you got: 0 means a defeat |
-| `session_id`, `label` | Groups attempts. Set `session_label` in the module's ini to tag them. |
-
-**`sessions.csv`**, one row per session: totals, fastest defeat, average attempt length, and the
-best boss HP % you reached.
-
-## How it works
-
-```
-GitGudGym.exe (hub)  <── shared memory ──>  gitgudgym-<game>.dll (inside the game)
-  library, stats UI, overlay, sounds          shared trainer core + one adapter per game
-```
-
-Each game module is a small DLL: the shared trainer core plus a **game adapter** that knows where
-that game keeps player HP, enemies and positions. The hub downloads modules from this repo's
-releases, verifies them, and loads the right one into the game. Details are in
-[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
-
-## Contributing
-
-New games are the most valuable contribution. A module is one folder and one class; see
-[docs/ADDING_A_GAME.md](docs/ADDING_A_GAME.md). For everything else (building, PRs, releases),
-see [CONTRIBUTING.md](CONTRIBUTING.md).
+Requires Windows 10/11 and Visual Studio 2022 (or Build Tools) with the C++ workload.
 
 ```bat
-git clone https://github.com/Git-Gud-Gym/git-gud-gym.git
-cd git-gud-gym
+git clone https://github.com/Git-Gud-Gym/launcher.git
+cd launcher
 build.bat
 ```
+
+The build fetches the [SDK](https://github.com/Git-Gud-Gym/sdk) version pinned in `CMakeLists.txt`.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for local SDK checkouts, non-admin builds and testing modules,
+and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how the app works.
 
 ## Roadmap
 
 - [ ] **True phase 1 reset:** reload the encounter on a boss defeat instead of only refilling HP
 - [ ] Boss names in stats instead of max HP
-- [ ] Support for the latest Elden Ring patch
 - [ ] Progress charts from the CSV history
 - [ ] More games: Sekiro, Dark Souls III, and whatever the community asks for
-
-## Known limitations
-
-- **No phase 1 reset:** a boss defeat refills HP but doesn't reset the boss to phase 1.
-- **Instant-death effects:** these may bypass immortality.
-- **Damage credit:** damage from spirit ashes and co-op summons counts as yours.
 
 ## Credits
 

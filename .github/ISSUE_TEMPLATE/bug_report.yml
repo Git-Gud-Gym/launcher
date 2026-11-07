@@ -1,20 +1,19 @@
 name: Bug report
-description: Something doesn't work in the app or in a game module.
+description: Something doesn't work in the Git Gud Gym app (library, game page, overlay, attaching).
 labels: [bug]
 body:
-  - type: dropdown
+  - type: input
     id: game
     attributes:
       label: Game
-      options: [Elden Ring, Not game-specific (the app)]
-    validations:
-      required: true
+      description: Which game were you using, if any?
+      placeholder: Elden Ring
   - type: input
     id: versions
     attributes:
       label: Versions
       description: Shown in the app's game page header and title bar.
-      placeholder: "App v0.3.0, module v0.3.0, game 1.12.0"
+      placeholder: "Git Gud Gym v0.3.0, module v0.3.0, game 1.12.0"
     validations:
       required: true
   - type: textarea

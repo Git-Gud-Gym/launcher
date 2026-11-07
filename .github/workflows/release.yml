@@ -1,16 +1,13 @@
 name: Release
 
-# Push a tag to publish a release:
-#   app-v0.3.0        the hub app (GitGudGym.exe)
-#   eldenring-v0.3.0  a game module (any folder under src/games/)
-# The matching CHANGELOG.md section ("## App v0.3.0" / "## Elden Ring v0.3.0") becomes the notes.
+# Push a tag like v0.4.0 (matching project(... VERSION) in CMakeLists.txt) to publish the launcher.
+# The "## v0.4.0" section of CHANGELOG.md becomes the release notes.
 on:
   push:
-    tags: ['*-v*']
+    tags: ['v*']
 
 permissions:
   contents: write
-  actions: write
 
 jobs:
   release:
@@ -18,37 +15,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Work out what's being released
-        id: tag
-        shell: pwsh
-        run: |
-          if ('${{ github.ref_name }}' -notmatch '^([a-z0-9]+)-v(\d+\.\d+\.\d+)$') { throw "Unrecognised tag ${{ github.ref_name }}" }
-          $target, $version = $Matches[1], $Matches[2]
-          if ($target -eq 'app') {
-            $name = 'App'; $title = "Git Gud Gym v$version"
-          } else {
-            $manifest = Get-Content "src/games/$target/module.json" -Raw | ConvertFrom-Json
-            $name = $manifest.name; $title = "$name v$version"
-          }
-          "target=$target" >> $env:GITHUB_OUTPUT
-          "version=$version" >> $env:GITHUB_OUTPUT
-          "heading=$name v$version" >> $env:GITHUB_OUTPUT
-          "title=$title" >> $env:GITHUB_OUTPUT
-
       - name: Build
         shell: cmd
         run: build.bat
 
       - name: Package
         shell: pwsh
-        run: ./scripts/package.ps1 -Target ${{ steps.tag.outputs.target }} -Version ${{ steps.tag.outputs.version }}
+        run: ./scripts/package.ps1 -Version ('${{ github.ref_name }}' -replace '^v', '')
 
       - name: Release notes from CHANGELOG.md
         shell: pwsh
         run: |
-          $heading = [regex]::Escape('${{ steps.tag.outputs.heading }}')
+          $heading = [regex]::Escape('${{ github.ref_name }}')
           $match = [regex]::Match((Get-Content CHANGELOG.md -Raw), "(?ms)^## $heading\b[^\n]*\n(.*?)(?=^## |\z)")
-          if (-not $match.Success) { throw "CHANGELOG.md has no '## ${{ steps.tag.outputs.heading }}' section" }
+          if (-not $match.Success) { throw "CHANGELOG.md has no '## ${{ github.ref_name }}' section" }
           $match.Groups[1].Value.Trim() | Set-Content -Encoding UTF8 notes.md
 
       - name: Publish
@@ -56,12 +36,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $files = (Get-ChildItem dist/${{ steps.tag.outputs.target }}/*).FullName
-          # Only hub releases become "Latest"; module releases show up in the in-app library instead.
-          $latest = if ('${{ steps.tag.outputs.target }}' -eq 'app') { '--latest' } else { '--latest=false' }
-          gh release create '${{ github.ref_name }}' $files --title '${{ steps.tag.outputs.title }}' --notes-file notes.md $latest
+          gh release create '${{ github.ref_name }}' (Get-ChildItem dist/*.zip).FullName `
+            --title 'Git Gud Gym ${{ github.ref_name }}' --notes-file notes.md --latest
 
-      - name: Refresh the website's game library
+      - name: Tell the registry
+        shell: pwsh
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh workflow run pages.yml --ref main
+          GH_TOKEN: ${{ secrets.REGISTRY_DISPATCH_TOKEN }}
+        run: |
+          if ($env:GH_TOKEN) { gh workflow run publish.yml -R Git-Gud-Gym/registry }
+          else { 'No REGISTRY_DISPATCH_TOKEN secret: the registry picks this release up on its next scheduled run.' }

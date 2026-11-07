@@ -4,7 +4,7 @@
 #include <chrono>
 #include <string>
 
-#include "../common/shared_state.h"
+#include "shared_state.h"
 
 namespace Gdiplus {
 class Bitmap;

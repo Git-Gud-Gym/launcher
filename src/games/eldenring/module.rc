@@ -1,3 +1,0 @@
-#define GGG_FILE_DESCRIPTION "Git Gud Gym module for Elden Ring"
-#define GGG_ORIGINAL_FILENAME "gitgudgym-eldenring.dll"
-#include "version_info.rc"
