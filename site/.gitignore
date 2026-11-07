@@ -1,0 +1,5 @@
+node_modules/
+dist/
+*.tsbuildinfo
+# Generated in CI by scripts/build-catalog.mjs
+public/catalog.json

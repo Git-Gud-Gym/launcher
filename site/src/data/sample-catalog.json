@@ -1,0 +1,55 @@
+{
+  "schema": 1,
+  "generatedAt": "2026-11-07T00:00:00Z",
+  "repo": "ryyanrashid01/git-gud-gym",
+  "app": null,
+  "modules": [
+    {
+      "id": "eldenring",
+      "name": "Elden Ring",
+      "status": "available",
+      "tagline": "Practice any boss in the Lands Between without dying, or letting it die.",
+      "features": [
+        "Player can't die: lethal hits refill your HP and count as a death",
+        "Boss can't die: it refills at 0 HP and counts as a defeat",
+        "Falls respawn you on the last solid ground",
+        "Let boss die once, for scripted phase changes (Rennala, Radagon)",
+        "Automatic boss detection",
+        "Per-attempt and per-session stats saved as CSV"
+      ],
+      "version": "0.2.0",
+      "releaseUrl": null,
+      "publishedAt": null,
+      "game": {
+        "exe": "eldenring.exe",
+        "steamAppId": 1245620,
+        "testedPatches": ["1.12.0"]
+      },
+      "files": []
+    },
+    {
+      "id": "sekiro",
+      "name": "Sekiro: Shadows Die Twice",
+      "status": "planned",
+      "tagline": "Planned. Not available yet.",
+      "features": [],
+      "version": null,
+      "releaseUrl": null,
+      "publishedAt": null,
+      "game": null,
+      "files": []
+    },
+    {
+      "id": "darksouls3",
+      "name": "Dark Souls III",
+      "status": "planned",
+      "tagline": "Planned. Not available yet.",
+      "features": [],
+      "version": null,
+      "releaseUrl": null,
+      "publishedAt": null,
+      "game": null,
+      "files": []
+    }
+  ]
+}

@@ -1,0 +1,76 @@
+name: Website
+
+# Builds the website in site/ (plus the game catalog it and the app read) and deploys it to GitHub Pages.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - 'scripts/build-catalog.mjs'
+      - 'catalog/**'
+      - 'games/**/module.json'
+      - 'src/games/**/module.json'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time; don't cancel a deployment that's already running.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+
+      - name: Build catalog
+        id: catalog
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/build-catalog.mjs --out site/public/catalog.json
+
+      - name: Fall back to the sample catalog
+        if: steps.catalog.outcome != 'success'
+        run: |
+          echo "::warning::build-catalog.mjs failed or is missing; publishing the bundled sample catalog instead."
+          cp site/src/data/sample-catalog.json site/public/catalog.json
+
+      - name: Install
+        working-directory: site
+        run: npm ci
+
+      - name: Build site
+        working-directory: site
+        env:
+          SITE_BASE: /${{ github.event.repository.name }}/
+        run: npm run build
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
