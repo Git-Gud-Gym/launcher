@@ -4,7 +4,7 @@ The hub app and each game module are released separately, each with its own vers
 `app-v<version>` and `<game>-v<version>` (e.g. `eldenring-v0.3.0`). The release workflow publishes the
 matching section below ("## App v…" / "## Elden Ring v…") as the release notes.
 
-## App v0.3.0 - unreleased
+## App v0.3.0 - 2026-11-07
 
 First release of Git Gud Gym as a hub: install it once, then add the games you play.
 
@@ -18,7 +18,7 @@ First release of Git Gud Gym as a hub: install it once, then add the games you p
 - **New data location:** settings, modules and stats live in `%LOCALAPPDATA%\GitGudGym`.
 - **Update notice:** the app tells you when a new version of itself is out.
 
-## Elden Ring v0.3.0 - unreleased
+## Elden Ring v0.3.0 - 2026-11-07
 
 - Now a module for the Git Gud Gym hub: install it from the app's Library.
 - Stats and the log move to `%LOCALAPPDATA%\GitGudGym\data\eldenring`.

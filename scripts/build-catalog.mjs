@@ -21,7 +21,7 @@ const args = Object.fromEntries(
   }, []),
 );
 const out = resolve(args.out ?? 'catalog.json');
-const repo = args.repo ?? process.env.GITHUB_REPOSITORY ?? 'ryyanrashid01/git-gud-gym';
+const repo = args.repo ?? process.env.GITHUB_REPOSITORY ?? 'Git-Gud-Gym/git-gud-gym';
 const token = process.env.GH_TOKEN ?? process.env.GITHUB_TOKEN;
 
 const api = async (path) => {

@@ -31,7 +31,7 @@ if ($Target -eq 'app') {
     Copy-Item "$root\LICENSE" "$stage\LICENSE.txt"
     @"
 Git Gud Gym v$appVersion
-https://github.com/ryyanrashid01/git-gud-gym
+https://github.com/Git-Gud-Gym/git-gud-gym
 
 1. Run GitGudGym.exe (it asks for administrator rights).
 2. In the Library, install the module for your game.

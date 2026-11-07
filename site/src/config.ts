@@ -2,7 +2,7 @@
  * The single place that knows where the project lives on GitHub.
  * When the repo moves (e.g. to an organization), change REPO here and nowhere else.
  */
-export const REPO = "ryyanrashid01/git-gud-gym";
+export const REPO = "Git-Gud-Gym/git-gud-gym";
 
 export const GITHUB_URL = `https://github.com/${REPO}`;
 export const RELEASES_URL = `${GITHUB_URL}/releases`;

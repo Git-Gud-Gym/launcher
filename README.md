@@ -9,11 +9,11 @@ learn the moveset, and every attempt is logged so you can watch yourself improve
 
 Install Git Gud Gym once, then add the games you play from its library.
 
-[![Latest release](https://img.shields.io/github/v/release/ryyanrashid01/git-gud-gym?filter=Git%20Gud%20Gym*&display_name=release&label=download&color=d4a84b&style=for-the-badge)](https://github.com/ryyanrashid01/git-gud-gym/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/ryyanrashid01/git-gud-gym/total?color=d4a84b&style=for-the-badge)](https://github.com/ryyanrashid01/git-gud-gym/releases)
-[![Build](https://img.shields.io/github/actions/workflow/status/ryyanrashid01/git-gud-gym/build.yml?branch=main&style=for-the-badge)](https://github.com/ryyanrashid01/git-gud-gym/actions/workflows/build.yml)
+[![Latest release](https://img.shields.io/github/v/release/Git-Gud-Gym/git-gud-gym?filter=Git%20Gud%20Gym*&display_name=release&label=download&color=d4a84b&style=for-the-badge)](https://github.com/Git-Gud-Gym/git-gud-gym/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/Git-Gud-Gym/git-gud-gym/total?color=d4a84b&style=for-the-badge)](https://github.com/Git-Gud-Gym/git-gud-gym/releases)
+[![Build](https://img.shields.io/github/actions/workflow/status/Git-Gud-Gym/git-gud-gym/build.yml?branch=main&style=for-the-badge)](https://github.com/Git-Gud-Gym/git-gud-gym/actions/workflows/build.yml)
 
-[![Website](https://img.shields.io/badge/website-docs-0c0d12?style=flat-square)](https://ryyanrashid01.github.io/git-gud-gym/)
+[![Website](https://img.shields.io/badge/website-docs-0c0d12?style=flat-square)](https://git-gud-gym.github.io/git-gud-gym/)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%2F%2011-0c0d12?style=flat-square&logo=windows)
 ![C++20](https://img.shields.io/badge/C%2B%2B-20-0c0d12?style=flat-square&logo=cplusplus)
 [![License: MIT](https://img.shields.io/badge/license-MIT-0c0d12?style=flat-square)](LICENSE)
@@ -35,7 +35,7 @@ Install Git Gud Gym once, then add the games you play from its library.
 | Sekiro: Shadows Die Twice | | | 🗓️ Planned |
 | Dark Souls III | | | 🗓️ Planned |
 
-Want another game? [Request it](https://github.com/ryyanrashid01/git-gud-gym/issues/new?template=game_request.yml),
+Want another game? [Request it](https://github.com/Git-Gud-Gym/git-gud-gym/issues/new?template=game_request.yml),
 or [build the module yourself](docs/ADDING_A_GAME.md).
 
 ## Features
@@ -54,7 +54,7 @@ or [build the module yourself](docs/ADDING_A_GAME.md).
 ## Quick start
 
 1. **Download** `GitGudGym-v*.zip` from the
-   [latest release](https://github.com/ryyanrashid01/git-gud-gym/releases/latest), extract it anywhere,
+   [latest release](https://github.com/Git-Gud-Gym/git-gud-gym/releases/latest), extract it anywhere,
    and run `GitGudGym.exe`. Accept the administrator prompt: the app needs it to launch the game and
    attach to it.
 2. **Install a game** from the **Library**.
@@ -127,7 +127,7 @@ New games are the most valuable contribution. A module is one folder and one cla
 see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ```bat
-git clone https://github.com/ryyanrashid01/git-gud-gym.git
+git clone https://github.com/Git-Gud-Gym/git-gud-gym.git
 cd git-gud-gym
 build.bat
 ```
