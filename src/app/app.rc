@@ -1,0 +1,5 @@
+#define GGG_FILE_DESCRIPTION "Git Gud Gym"
+#define GGG_ORIGINAL_FILENAME "GitGudGym.exe"
+#include "version_info.rc"
+
+1 ICON "app.ico"

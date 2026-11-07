@@ -1,0 +1,42 @@
+name: Release
+
+# Push a tag like eldenring-v0.2.0 to build, package and publish that release.
+on:
+  push:
+    tags: ['eldenring-v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        shell: cmd
+        run: build.bat
+
+      - name: Package
+        shell: pwsh
+        run: ./scripts/package.ps1 -Version ('${{ github.ref_name }}' -replace '^eldenring-v', '')
+
+      - name: Release notes from CHANGELOG.md
+        shell: pwsh
+        run: |
+          $version = '${{ github.ref_name }}' -replace '^eldenring-v', ''
+          $changelog = Get-Content CHANGELOG.md -Raw
+          $pattern = "(?ms)^## Elden Ring v$([regex]::Escape($version))\b[^\n]*\n(.*?)(?=^## |\z)"
+          $match = [regex]::Match($changelog, $pattern)
+          if (-not $match.Success) { throw "CHANGELOG.md has no '## Elden Ring v$version' section" }
+          $match.Groups[1].Value.Trim() | Set-Content -Encoding UTF8 notes.md
+
+      - name: Publish
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = '${{ github.ref_name }}' -replace '^eldenring-v', ''
+          gh release create '${{ github.ref_name }}' (Get-ChildItem dist/*.zip).FullName `
+            --title "Elden Ring v$version" --notes-file notes.md --latest
